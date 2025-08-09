@@ -1,144 +1,22 @@
 {% extends "pages/index.html" %}
 <!-- Main page content-->
 {% block content %}
-<main>
-    
-    <iframe id="sim-iframe" src="http://localhost:8080" style="width: 100%; height: 100vh;"></iframe>
-</main>
+<main style="position:relative">
+    <!-- Overlay controls (now the source of truth) -->
+    <script>
+        // Provide initial stages to the overlay script
+        window.__STAGES__ = [
+            {% for stage in stages %}
+            {"code": "{{stage.code}}", "status": "{{stage.status}}"}{{ "," if not loop.last else "" }}
+            {% endfor %}
+        ];
+    </script>
 
-<script>
-window.addEventListener("message", (event) => {
-
-    // Handle the message
-    if (event.data === "stage1") {
-        fetch("/stage1", {
-            method: "POST"
-        });
-        var iframeWindow = document.getElementById("sim-iframe").contentWindow;
-        iframeWindow.postMessage("stage1Callback", "http://localhost:8080");
-    }
-
-    if (event.data === "stage2") {
-        function triggerStage2AndUpdateUI() {
-            fetch("/stage2", {
-                method: "POST"
-            })
-            .then(response => {
-                // Check if the response is successful
-                if (response.ok) {
-                    var iframeWindow = document.getElementById("sim-iframe").contentWindow;
-                    iframeWindow.postMessage("set-stage2-active", "http://localhost:8080");
-                    iframeWindow.postMessage("set-stage3-enabled", "http://localhost:8080");
-                } else {
-                    throw new Error('Server responded with a non-OK status');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
-
-        triggerStage2AndUpdateUI();
-    }
-
-    if (event.data === "stage3") {
-        function triggerStage3AndUpdateUI() {
-            fetch("/stage3", {
-                method: "POST"
-            })
-            .then(response => {
-                // Check if the response is successful
-                if (response.ok) {
-                    var iframeWindow = document.getElementById("sim-iframe").contentWindow;
-                    iframeWindow.postMessage("set-stage3-active", "http://localhost:8080");
-                    iframeWindow.postMessage("set-stage4-enabled", "http://localhost:8080");
-                } else {
-                    throw new Error('Server responded with a non-OK status');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
-
-        triggerStage3AndUpdateUI();
-    }
-
-    if (event.data === "stage4") {
-        function triggerStage4AndUpdateUI() {
-            fetch("/stage4", {
-                method: "POST"
-            })
-            .then(response => {
-                // Check if the response is successful
-                if (response.ok) {
-                    var iframeWindow = document.getElementById("sim-iframe").contentWindow;
-                    iframeWindow.postMessage("set-stage4-active", "http://localhost:8080");
-                    iframeWindow.postMessage("set-stage5-enabled", "http://localhost:8080");
-                } else {
-                    throw new Error('Server responded with a non-OK status');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
-
-        triggerStage4AndUpdateUI();
-    }
-
-    if (event.data === "stage5") {
-        function triggerStage5AndUpdateUI() {
-            fetch("/stage5", {
-                method: "POST"
-            })
-            .then(response => {
-                // Check if the response is successful
-                if (response.ok) {
-                    var iframeWindow = document.getElementById("sim-iframe").contentWindow;
-                    iframeWindow.postMessage("set-stage5-active", "http://localhost:8080");
-                } else {
-                    throw new Error('Server responded with a non-OK status');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
-
-        triggerStage5AndUpdateUI();
-    }
-
-    if (event.data === "resetWorldClicked") {
-        Swal.fire({
-            title: "Reset Simulator?",
-            text: "This will return the drone flight controller, companion computer, and ground station to their initial state! Drone flight logs will also be deleted.",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            confirmButtonText: "Yes, reset it!"
-        }).then((result) => {
-            if (result.isConfirmed) {
-                
-                // Send a POST request to http://localhost:8000/reset
-                // This will trigger the reset() function in simulator/mgmt/routes.py
-                fetch("/reset", {
-                    method: "POST"
-                });
-
-                var iframeWindow = document.getElementById("sim-iframe").contentWindow;
-                iframeWindow.postMessage("resetWorldCallback", "http://localhost:8080");
-                document.getElementById("sim-iframe").src = document.getElementById("sim-iframe").src;
-
-                // Reload the page after 2 seconds
-                setTimeout(function () {
-                    window.location.reload();
-                }, 2000);
-            }
-        });
-    }
-});
-</script>
+    {% include "components/flight_controls.html" %}
+  
+    <!-- Keep the viewer iframe for now (gzweb now; replace with your map later) -->
+    <iframe id="sim-iframe" src="http://localhost:8080" style="width: 100%; height: 100vh; border:0;"></iframe>
+  </main>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
