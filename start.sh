@@ -329,15 +329,14 @@ if [ "$wifi_simulation" = "y" ]; then
         
         # WEP or WPA2
 
-
         if [ "$wifi_mode" = "wpa2" ]; then
             echo "[+] Copying WPA2 config into companion-computer & GCS container..."
+            export WIFI_MODE="wpa2"
             docker cp companion-computer/conf/hostapd_wpa2.conf companion-computer:/etc/hostapd.conf
-            docker cp ground-control-station/conf/wpa_supplicant_wpa2.conf ground-control-station:/etc/wpa_supplicant/wpa_supplicant.conf
         elif [ "$wifi_mode" = "wep" ]; then
             echo "[+] Copying WEP config into companion-computer & GCS container..."
+            unset WIFI_MODE
             docker cp companion-computer/conf/hostapd_wep.conf companion-computer:/etc/hostapd.conf
-            docker cp ground-control-station/conf/wpa_supplicant_wep.conf ground-control-station:/etc/wpa_supplicant/wpa_supplicant.conf
         else
             echo "[!] Invalid Wi-Fi mode: $wifi_mode"
             echo "[!] Valid modes: wpa2 | wep"
@@ -462,6 +461,7 @@ echo """
 elif [ "$wifi_simulation" = "n" ]; then
     WIFI_ENABLED="False"
     export WIFI_ENABLED
+    unset WIFI_MODE
     LOG_FILE="dvd.log"
     {
         echo -e "${CYAN}Starting simulation assuming drone network connectivity access..."

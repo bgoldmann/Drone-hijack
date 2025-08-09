@@ -38,6 +38,7 @@ services:
     container_name: ground-control-station
     privileged: true
     environment:
+      - WIFI_MODE
       - DISPLAY=${DISPLAY}
       - QT_NO_MITSHM=1
       - XDG_RUNTIME_DIR=/tmp

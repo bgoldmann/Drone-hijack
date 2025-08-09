@@ -52,9 +52,15 @@ RUN if ! id -u gcs &>/dev/null; then \
 COPY ground-control-station/stages/   /opt/gcs/stages/
 COPY ground-control-station/missions  /opt/gcs/missions/
 COPY ground-control-station/init      /init
-COPY ground-control-station/conf/wpa_supplicant.conf \
-     /etc/wpa_supplicant/wpa_supplicant.conf
 RUN chmod +x /init
+
+# Wireless configurations
+COPY ground-control-station/conf/wpa_supplicant_wep.conf  /etc/wpa_supplicant/wpa_supplicant_wep.conf
+COPY ground-control-station/conf/wpa_supplicant_wpa2.conf /etc/wpa_supplicant/wpa_supplicant_wpa2.conf
+
+# Entrypoint
+COPY ground-control-station/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 5. QGroundControl nightly  (amd64 ↔︎ arm64 automatically)
@@ -86,4 +92,4 @@ COPY --chown=gcs:gcs ground-control-station/conf \
 # 7. Runtime
 # ─────────────────────────────────────────────────────────────────────────────
 USER root
-CMD echo "Ground Control Online…" && /usr/bin/expect /init
+ENTRYPOINT ["/entrypoint.sh"]
