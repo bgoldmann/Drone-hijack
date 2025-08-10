@@ -211,11 +211,10 @@ fi
 
 # If FULL selected but no GPU, offer fallback
 if [[ "${sim_mode}" == "full" ]] && ! gpu_ok; then
-    echo "GPU runtime not detected (need NVIDIA drivers + nvidia-docker)."
+    echo "GPU runtime not detected (need NVIDIA drivers + nvidia-docker). Warning you may experience performance issues."
     read -rp "Fall back to Lite mode? [Y/n]: " fb
     if [[ ! "${fb:-Y}" =~ ^[Yy]$ ]]; then
-        echo "Aborting. Please configure GPU and try again."
-        exit 1
+        sim_mode="full"
     fi
     sim_mode="lite"
 fi
