@@ -74,6 +74,7 @@
       .conn-dot{ width:10px; height:10px; border-radius:50%; background:#475569; } /* slate-600 */
       .conn-dot.ok{ background:#22c55e; }                 /* green-500 */
       .conn-dot.bad{ background:#ef4444; }                /* red-500 */
+      .conn-dot.warn{ background:#f59e0b; }               /* amber-500 */
 
       #telemetry-toast {
         position: absolute; top: 12px; right: 12px; z-index: 1200;
@@ -217,12 +218,23 @@
       clearTimeout(showToast._t);
       showToast._t = setTimeout(()=> toast.hidden = true, 2200);
     }
+
     function setConnUI(state) {
-      const connected = state === 'connected';
-      connDot.classList.toggle('ok', connected);
-      connDot.classList.toggle('bad', !connected);
-      connText.textContent = connected ? 'Connected' : (state === 'connecting' ? 'Connecting…' : 'Disconnected');
+      connText.dataset.state = state;
+      connDot.classList.remove('ok','bad','warn');
+
+      if (state === 'connected') {
+        connDot.classList.add('ok');
+        connText.textContent = 'Connected';
+      } else if (state === 'connecting' || state === 'stale') {
+        connDot.classList.add('warn');
+        connText.textContent = state === 'connecting' ? 'Waiting for telemetry…' : 'No telemetry';
+      } else {
+        connDot.classList.add('bad');
+        connText.textContent = 'Disconnected';
+      }
     }
+
     function updateMarker(lat, lon) {
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
       if (lat === 0 && lon === 0) return; // ignore bogus origin until GPS fix
@@ -313,66 +325,123 @@
       }
     }
 
+    const TRAFFIC_TIMEOUT_MS = 3000;
+    let lastTrafficAt = 0;
+    let trafficTimer = null;
+
+    function markTelemetrySeen() {
+      lastTrafficAt = Date.now();
+      if (connText.dataset.state !== 'connected') {
+        setConnUI('connected');
+        showToast('telemetry streaming', true);
+      }
+      // schedule stale check
+      clearTimeout(trafficTimer);
+      trafficTimer = setTimeout(() => {
+        const noTraffic = Date.now() - lastTrafficAt >= TRAFFIC_TIMEOUT_MS;
+        if (noTraffic) {
+          // socket might still be up, but no frames → stale
+          setConnUI('stale');
+          showToast('no telemetry');
+        }
+      }, TRAFFIC_TIMEOUT_MS + 50);
+    }
+
+
     // ---------- Socket.IO only ----------
     const socket = io(CC_URL, { transports: ["websocket","polling"], timeout: 8000 });
 
-    socket.on("connect", () => { console.log("[io] connected", socket.id); setConnUI('connected'); showToast("telemetry connected", true); });
-    socket.on("disconnect", (reason) => { console.warn("[io] disconnected:", reason); setConnUI('disconnected'); showToast("telemetry disconnected"); });
-    socket.on("connect_error", (err) => { console.warn("[io] connect_error", err?.message || err); setConnUI('connecting'); });
-
-    // Continuous updates from telemetry_status.gauges
-    socket.on("telemetry_status", (data) => {
-      const gauges = data?.gauges || data?.status?.gauges || null;
-      if (gauges) applyG(gauges);
-      // light connection reflection
-      if (typeof data?.status === "string" && data.status.toLowerCase().includes("connect")) setConnUI('connected');
+    socket.on("connect", () => {
+      console.log("[io] connected", socket.id);
+      setConnUI('connecting');                 // link is up, but waiting for frames
+      showToast("link up; waiting for telemetry…");
     });
 
-    // Fallbacks
-    socket.on("gauge_snapshot", (payload) => applyG(payload?.gauges || payload));
+    socket.on("disconnect", (reason) => {
+      console.warn("[io] disconnected:", reason);
+      clearTimeout(trafficTimer);
+      setConnUI('disconnected');
+      showToast("telemetry disconnected");
+    });
+
+    socket.on("connect_error", (err) => {
+      console.warn("[io] connect_error", err?.message || err);
+      setConnUI('connecting');
+    });
+
+    // When we see real telemetry, we both apply it and mark traffic.
+    socket.on("telemetry_status", (data) => {
+      const gauges = data?.gauges || data?.status?.gauges || null;
+      if (gauges) {
+        applyG(gauges);
+        markTelemetrySeen();
+      }
+      // REMOVE this older optimistic reflection:
+      // if (typeof data?.status === "string" && data.status.toLowerCase().includes("connect")) setConnUI('connected');
+    });
+
+    socket.on("gauge_snapshot", (payload) => {
+      const g = payload?.gauges || payload;
+      if (g) {
+        applyG(g);
+        markTelemetrySeen();
+      }
+    });
+
     socket.on("mavlink_message", (data) => {
       const m = data?.message || data || {};
       const t = m.mavpackettype || m.type || m.msgname;
 
-      if (t === "ATTITUDE") {
-        applyG({
-          roll_deg:  Number.isFinite(m.roll)  ? m.roll  * 180/Math.PI : undefined,
-          pitch_deg: Number.isFinite(m.pitch) ? m.pitch * 180/Math.PI : undefined,
-          heading_deg: Number.isFinite(m.yaw) ? m.yaw   * 180/Math.PI : undefined
-        });
-      } else if (t === "VFR_HUD") {
-        applyG({
-          airspeed_mps:    m.airspeed,
-          groundspeed_mps: m.groundspeed,
-          climb_mps:       m.climb,
-          heading_deg:     m.heading
-        });
-      } else if (t === "GLOBAL_POSITION_INT") {
-        applyG({
-          lat: Number.isFinite(m.lat) ? m.lat/1e7 : undefined,
-          lon: Number.isFinite(m.lon) ? m.lon/1e7 : undefined,
-          alt_rel_m:  Number.isFinite(m.relative_alt) ? m.relative_alt/1000 : undefined,
-          alt_amsl_m: Number.isFinite(m.alt) ? m.alt/1000 : undefined,
-        });
-      } else if (t === "GPS_RAW_INT") {
-        applyG({
-          lat: Number.isFinite(m.lat) ? m.lat/1e7 : undefined,
-          lon: Number.isFinite(m.lon) ? m.lon/1e7 : undefined,
-        });
-      } else if (t === "SYS_STATUS") {
-        applyG({
-          batt_voltage_v:     (m.voltage_battery >= 0) ? m.voltage_battery/1000 : undefined,
-          batt_current_a:     (m.current_battery !== -1) ? m.current_battery/100 : undefined,
-          batt_remaining_pct: (m.battery_remaining !== 255) ? m.battery_remaining : undefined,
-        });
-      } else if (t === "HEARTBEAT") {
-        applyG({
-          armed: typeof m.base_mode === "number" ? !!(m.base_mode & 0x80) : undefined,
-          // if your server provides a mode string with the heartbeat frame:
-          mode:  typeof data.mode_string === "string" ? data.mode_string : undefined
-        });
+      // Only treat *drone* frames as telemetry (HEARTBEAT, ATTITUDE, etc.)
+      const TELEMETRY_TYPES = new Set([
+        "HEARTBEAT","ATTITUDE","VFR_HUD","GLOBAL_POSITION_INT","GPS_RAW_INT","SYS_STATUS"
+      ]);
+
+      if (TELEMETRY_TYPES.has(String(t))) {
+        // your existing mapping ↓
+        if (t === "ATTITUDE") {
+          applyG({
+            roll_deg:  Number.isFinite(m.roll)  ? m.roll  * 180/Math.PI : undefined,
+            pitch_deg: Number.isFinite(m.pitch) ? m.pitch * 180/Math.PI : undefined,
+            heading_deg: Number.isFinite(m.yaw) ? m.yaw   * 180/Math.PI : undefined
+          });
+        } else if (t === "VFR_HUD") {
+          applyG({
+            airspeed_mps:    m.airspeed,
+            groundspeed_mps: m.groundspeed,
+            climb_mps:       m.climb,
+            heading_deg:     m.heading
+          });
+        } else if (t === "GLOBAL_POSITION_INT") {
+          applyG({
+            lat: Number.isFinite(m.lat) ? m.lat/1e7 : undefined,
+            lon: Number.isFinite(m.lon) ? m.lon/1e7 : undefined,
+            alt_rel_m:  Number.isFinite(m.relative_alt) ? m.relative_alt/1000 : undefined,
+            alt_amsl_m: Number.isFinite(m.alt) ? m.alt/1000 : undefined,
+          });
+        } else if (t === "GPS_RAW_INT") {
+          applyG({
+            lat: Number.isFinite(m.lat) ? m.lat/1e7 : undefined,
+            lon: Number.isFinite(m.lon) ? m.lon/1e7 : undefined,
+          });
+        } else if (t === "SYS_STATUS") {
+          applyG({
+            batt_voltage_v:     (m.voltage_battery >= 0) ? m.voltage_battery/1000 : undefined,
+            batt_current_a:     (m.current_battery !== -1) ? m.current_battery/100 : undefined,
+            batt_remaining_pct: (m.battery_remaining !== 255) ? m.battery_remaining : undefined,
+          });
+        } else if (t === "HEARTBEAT") {
+          applyG({
+            armed: typeof m.base_mode === "number" ? !!(m.base_mode & 0x80) : undefined,
+            mode:  typeof data.mode_string === "string" ? data.mode_string : undefined
+          });
+        }
+
+        // mark the packet as telemetry
+        markTelemetrySeen();
       }
     });
+
   })();
 </script>
 {% endif %}
