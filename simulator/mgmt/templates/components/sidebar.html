@@ -95,40 +95,106 @@
     </div>
   </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const activeNavLink = document.querySelector('.nav-link.active');
-        if (activeNavLink) {
-            const drawerMenu = document.querySelector('.drawer-menu');
-            if (drawerMenu) {
-                const activeLinkTop = activeNavLink.getBoundingClientRect().top;
-                const drawerMenuTop = drawerMenu.getBoundingClientRect().top;
-                const scrollPosition = activeLinkTop - drawerMenuTop;
-                drawerMenu.scrollTop = scrollPosition + 200; // Adjusts scroll position for better visibility, modify the offset as needed
-            }
-        }
-    });
-    document.addEventListener("DOMContentLoaded", function() {
-        document.getElementById('open_qgc').addEventListener('click', function() {
-            fetch('/qgc', {
-                method: 'POST'
-            }).then(response => {
-                if (response.ok) {
-                    console.log('QGroundControl launched:', response);
-                } else {
-                    console.error('Error launching QGroundControl');
-                    Swal.fire({
-                        title: "Failed to Launch QGroundControl",
-                        html: "Your system's architecture may not being supported by QGroundControl. To deploy an local instance of QGround Control, follow  <a href='https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Running-QGround-Control-from-Apple-Silicon-(arm64)-hosts'>this guide</a>.",
-                        icon: "error",
-                        confirmButtonColor: '#d33',
-                        confirmButtonText: "OK"
-                    });
-                }
-            }).catch(error => {
-                console.error('Error:', error);
-            });
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // ... keep your existing code above ...
+  
+      const launchBtn = document.getElementById('open_qgc');
+      let controller = null;
+      let timeoutId = null;
+      const LAUNCH_TIMEOUT_MS = 20000;
+  
+      function setBusy(busy) {
+        launchBtn.disabled = busy;
+      }
+  
+      function showQgcError() {
+        Swal.fire({
+          title: "Failed to Launch QGroundControl",
+          html:
+            "Your system's architecture may not be supported by QGroundControl. " +
+            "To deploy a local instance, review " +
+            "<a href='https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Running-QGround-Control-from-Apple-Silicon-(arm64)-hosts' target='_blank' rel='noopener'>this guide</a>.",
+          icon: "error",
+          confirmButtonColor: "#d33",
+          confirmButtonText: "OK"
         });
+      }
+  
+      function abortIfNeeded(reason) {
+        if (controller) {
+          controller.abort();
+          controller = null;
+        }
+        clearTimeout(timeoutId);
+        setBusy(false);
+  
+        if (reason === 'user') {
+          Swal.fire({ title: "Launch canceled", icon: "info", timer: 1200, showConfirmButton: false });
+        } else if (reason === 'timeout') {
+          Swal.fire({
+            title: "Launch timed out",
+            html: "No response within 20s. Check the GCS container logs (e.g., <code>/tmp/qgc.launch.log</code>).",
+            icon: "warning"
+          });
+        }
+      }
+  
+      async function launchQGC() {
+        controller = new AbortController();
+        setBusy(true);
+  
+        Swal.fire({
+          title: "Launching QGroundControl…",
+          html: "<small class='text-muted'>This can take a moment. You can cancel anytime.</small>",
+          allowOutsideClick: false,
+          allowEscapeKey: true,
+          showConfirmButton: false,
+          showCancelButton: true,
+          cancelButtonText: "Cancel",
+          showCloseButton: true,
+          didOpen: () => { Swal.showLoading(); }
+        }).then((result) => {
+          if (result.dismiss === Swal.DismissReason.cancel ||
+              result.dismiss === Swal.DismissReason.close ||
+              result.dismiss === Swal.DismissReason.esc) {
+            abortIfNeeded('user');
+          }
+        });
+  
+        timeoutId = setTimeout(() => {
+          Swal.close();
+          abortIfNeeded('timeout');
+        }, LAUNCH_TIMEOUT_MS);
+  
+        try {
+          const resp = await fetch('/qgc', { method: 'POST', signal: controller.signal });
+  
+          clearTimeout(timeoutId);
+          controller = null;
+          setBusy(false);
+          Swal.close();
+  
+          if (resp.ok) {
+            Swal.fire({ title: "QGroundControl launched", icon: "success", timer: 1600, showConfirmButton: false });
+          } else {
+            // Always show the old standard error message
+            showQgcError();
+          }
+        } catch (err) {
+          clearTimeout(timeoutId);
+          controller = null;
+          setBusy(false);
+  
+          if (err.name !== 'AbortError') {
+            Swal.close();
+            // Always show the old standard error message
+            showQgcError();
+          }
+        }
+      }
+  
+      launchBtn.addEventListener('click', launchQGC);
     });
-</script>
+  </script>
 {% endblock %}
