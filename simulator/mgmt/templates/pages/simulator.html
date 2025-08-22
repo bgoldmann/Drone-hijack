@@ -1,175 +1,436 @@
 {% extends "pages/index.html" %}
-<!-- Main page content-->
 {% block content %}
-<main>
+<main style="position:relative">
+
+  <!-- Server-provided stage states for the overlay -->
+  <script>
+    window.__STAGES__ = [
+      {% for stage in stages %}
+        {"code": "{{stage.code}}", "status": "{{stage.status}}"}{{ "," if not loop.last else "" }}
+      {% endfor %}
+    ];
+  </script>
+
+  {% include "components/flight_controls.html" %}
+
+  {% if LITE %}
+    <!-- Leaflet -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin="">
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin="">
+    </script>
+
+    <!-- Flight Indicators (vanilla JS by teocci) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/flight-indicators.css') }}">
+    <script src="{{ url_for('static', filename='js/flight-indicators.js') }}"></script>
+
+    <style>
+      #map { width: 100%; height: 100vh; z-index: 0; }
+      #flight-bar { z-index: 1000; }
+
+      /* --- Stage panel look to match the drone flight stage box --- */
+      .stage-panel{
+        background: #333;        
+        color: #e5e7eb;                                /* slate-200 */
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        backdrop-filter: blur(4px);
+      }
+
+      .stage-panel h4{
+        margin: 0 0 6px 0;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #cbd5e1;                                /* slate-300 */
+      }
+
+      /* Connection box layout */
+      #connection-box{
+        position: absolute; top: 8px; left: 8px; z-index: 1200;
+        min-width: 300px; padding: 12px 12px 10px;
+        font: 13px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      }
+
+      .conn-row{ display:flex; align-items:center; gap:8px; margin:4px 0; }
+      .conn-row.small{ font-size:12px; color:#94a3b8; }   /* slate-400 */
+
+      #conn-stats{
+        display:grid; grid-template-columns: 0fr 1fr; gap:6px 12px; margin-top:8px;
+        font-size:12px;
+      }
+      #conn-stats .label{ color:#94a3b8; }                /* slate-400 */
+      #conn-stats .val{ font-weight:700; color:#f8fafc; } /* slate-50 */
+
+      /* Status dots */
+      .conn-dot{ width:10px; height:10px; border-radius:50%; background:#475569; } /* slate-600 */
+      .conn-dot.ok{ background:#22c55e; }                 /* green-500 */
+      .conn-dot.bad{ background:#ef4444; }                /* red-500 */
+      .conn-dot.warn{ background:#f59e0b; }               /* amber-500 */
+
+      #telemetry-toast {
+        position: absolute; top: 12px; right: 12px; z-index: 1200;
+        background: rgba(0,0,0,0.65); color: #fff; padding: 6px 10px; border-radius: 8px;
+        font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      }
+
+      /* Bottom gauge dock */
+      #gauge-dock {
+        position: absolute; left: 0; right: 60px; bottom: 60px; z-index: 1200;
+        padding: 12px 18px;
+      }
+      #gauge-grid {
+        max-width: 1200px; margin: 0 auto;
+        display: grid; grid-template-columns: repeat(6, minmax(160px, 1fr));
+        gap: 14px;
+      }
+      .instr {
+        aspect-ratio: 1 / 1;
+        background: transparent;
+        box-shadow: none;
+        border-radius: 12px;
+        padding: 6px;
+      }
+      .instr > div { width: 100%; height: 100%; }
+      @media (max-width: 1300px) {
+        #gauge-grid { grid-template-columns: repeat(3, 1fr); }
+      }
+      #gage-grid img[src$="_mechanics.svg"],
+      #gage-grid image[href$="_mechanics.svg"],
+      #gage-grid .fi-box,
+      #gage-grid .fi_box,
+      #gage-grid .box {
+        display: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        border: 0 !important;
+      }
+    </style>
+
+    <div id="map"></div>
+
+    <!-- Connection Box -->
+    <div id="connection-box" class="stage-panel">
+      <h4>Connection</h4>
+      <div class="conn-row">
+        <span id="conn-dot" class="conn-dot bad"></span>
+        <span id="conn-text">Disconnected</span>
+      </div>
+
+      <div class="conn-row small">Last fix: <span id="last-fix">—</span></div>
     
-    <iframe id="sim-iframe" src="http://localhost:8080" style="width: 100%; height: 100vh;"></iframe>
+      <div id="conn-stats">
+        <div class="label">Airspeed</div><div class="val"><span id="conn-spd">—</span> km/h</div>
+        <div class="label">Altitude</div><div class="val"><span id="conn-alt">—</span> m</div>
+        <div class="label">Heading</div><div class="val"><span id="conn-hdg">—</span>°</div>
+        <div class="label">Battery</div><div class="val"><span id="conn-battv">—</span> V · <span id="conn-battpct">—</span>%</div>
+        <div class="label">Mode</div><div class="val" id="conn-mode">—</div>
+        <div class="label">Lat/Lon</div><div class="val" id="latlon-val">—</div>
+        <div class="label">GPS</div><div class="val" id="conn-gps">—</div>
+      </div>
+    </div>
+
+    <!-- Bottom six-pack -->
+    <div id="gauge-dock">
+      <div id="gauge-grid">
+        <div class="instr"><div id="fi-airspeed"></div></div>
+        <div class="instr"><div id="fi-attitude"></div></div>
+        <div class="instr"><div id="fi-altimeter"></div></div>
+        <div class="instr"><div id="fi-coordinator"></div></div>
+        <div class="instr"><div id="fi-heading"></div></div>
+        <div class="instr"><div id="fi-vertical"></div></div>
+      </div>
+    </div>
+
+    <div id="telemetry-toast" hidden>waiting for telemetry…</div>
+  {% else %}
+    <!-- FULL MODE: legacy gzweb iframe -->
+    <iframe id="sim-iframe" src="http://localhost:8080" style="width: 100%; height: 100vh; border:0;"></iframe>
+    <script>
+      setTimeout(function () {
+        var iframe = document.getElementById("sim-iframe");
+        if (!iframe) return;
+        var w = iframe.contentWindow;
+        if (!w) return;
+        {% for stage in stages %}
+          w.postMessage("set-{{stage.code}}-{{stage.status.lower()}}", "http://localhost:8080");
+        {% endfor %}
+      }, 1000);
+    </script>
+  {% endif %}
+
 </main>
 
+<!-- Vendor scripts -->
+<script src="{{ url_for('static', filename='js/jquery-3.5.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+
+{% if LITE %}
 <script>
-window.addEventListener("message", (event) => {
+  (function () {
+    // ---------- constants ----------
+    const CC_URL = "http://localhost:3000";   // Companion Socket.IO origin
+    const IMG_DIR = "/static/images";         // FIJS images directory (no trailing slash)
+    const defaultLat = 37.241861, defaultLon = -115.796917, defaultZoom = 15;
 
-    // Handle the message
-    if (event.data === "stage1") {
-        fetch("/stage1", {
-            method: "POST"
-        });
-        var iframeWindow = document.getElementById("sim-iframe").contentWindow;
-        iframeWindow.postMessage("stage1Callback", "http://localhost:8080");
+    // ---------- map ----------
+    const map = L.map('map').setView([defaultLat, defaultLon], defaultZoom);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    const marker = L.marker([defaultLat, defaultLon], {
+      icon: L.icon({
+        iconUrl: '/static/images/drone.png',
+        iconSize: [41, 41], iconAnchor: [20, 20]
+      })
+    }).addTo(map);
+
+    // ---------- connection UI ----------
+    const toast = document.getElementById('telemetry-toast');
+    const connDot = document.getElementById('conn-dot');
+    const connText = document.getElementById('conn-text');
+    const lastFix = document.getElementById('last-fix');
+
+    // quick-stat DOM refs
+    const qs = {
+      spd:  document.getElementById('conn-spd'),
+      alt:  document.getElementById('conn-alt'),
+      hdg:  document.getElementById('conn-hdg'),
+      battv:document.getElementById('conn-battv'),
+      battp:document.getElementById('conn-battpct'),
+      mode: document.getElementById('conn-mode'),
+      gps:  document.getElementById('conn-gps'),
+      ll:   document.getElementById('latlon-val'),
+    };
+
+    function showToast(text, ok=false) {
+      toast.textContent = text;
+      toast.style.background = ok ? 'rgba(20,120,40,0.85)' : 'rgba(0,0,0,0.65)';
+      toast.hidden = false;
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=> toast.hidden = true, 2200);
     }
 
-    if (event.data === "stage2") {
-        function triggerStage2AndUpdateUI() {
-            fetch("/stage2", {
-                method: "POST"
-            })
-            .then(response => {
-                // Check if the response is successful
-                if (response.ok) {
-                    var iframeWindow = document.getElementById("sim-iframe").contentWindow;
-                    iframeWindow.postMessage("set-stage2-active", "http://localhost:8080");
-                    iframeWindow.postMessage("set-stage3-enabled", "http://localhost:8080");
-                } else {
-                    throw new Error('Server responded with a non-OK status');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
+    function setConnUI(state) {
+      connText.dataset.state = state;
+      connDot.classList.remove('ok','bad','warn');
+
+      if (state === 'connected') {
+        connDot.classList.add('ok');
+        connText.textContent = 'Connected';
+      } else if (state === 'connecting' || state === 'stale') {
+        connDot.classList.add('warn');
+        connText.textContent = state === 'connecting' ? 'Waiting for telemetry…' : 'No telemetry';
+        qs.spd.textContent = '-';
+        qs.alt.textContent = '-';
+        qs.hdg.textContent = '-';
+        qs.battv.textContent = '-';
+        qs.battp.textContent = '-';
+        qs.mode.textContent = '-';
+        qs.gps.textContent = '-';
+        qs.ll.textContent = '-';
+      } else {
+        connDot.classList.add('bad');
+        connText.textContent = 'Disconnected';
+      }
+    }
+
+    function updateMarker(lat, lon) {
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+      if (lat === 0 && lon === 0) return; // ignore bogus origin until GPS fix
+      marker.setLatLng([lat, lon]);
+      map.panTo([lat, lon], { animate: false });
+      lastFix.textContent = new Date().toLocaleTimeString();
+      if (qs.ll) qs.ll.textContent = lat.toFixed(6) + ", " + lon.toFixed(6);
+    }
+
+    // ---------- indicators (teocci lib) ----------
+    const mk = (el, type, opts={}) => new FlightIndicators(
+      document.querySelector(el),
+      type,
+      Object.assign({ size: 220, imagesDirectory: IMG_DIR, hideBox: true }, opts)
+    );
+
+    const fiAirspeed   = mk('#fi-airspeed',   FlightIndicators.TYPE_AIRSPEED);
+    const fiAttitude   = mk('#fi-attitude',   FlightIndicators.TYPE_ATTITUDE);
+    const fiAltimeter  = mk('#fi-altimeter',  FlightIndicators.TYPE_ALTIMETER, { pressure: 1013 });
+    const fiHeading    = mk('#fi-heading',    FlightIndicators.TYPE_HEADING);
+    const fiVertical   = mk('#fi-vertical',   FlightIndicators.TYPE_VERTICAL_SPEED);
+    const fiCoordinator= mk('#fi-coordinator',FlightIndicators.TYPE_TURN_COORDINATOR);
+
+    // ---------- unit helpers ----------
+    const mps_to_km_per_hour = (mps)=> mps * 3.6;   // FIJS airspeed expects km/h
+    const mps_to_km_per_min  = (mps)=> mps * 0.06;  // FIJS vertical expects km/min
+    const norm360 = (deg)=> ((deg % 360) + 360) % 360;
+
+    // ---------- apply gauges ----------
+    function applyG(g) {
+      if (!g) return;
+
+      // attitude
+      if (Number.isFinite(g.roll_deg))  fiAttitude.updateRoll(g.roll_deg);
+      if (Number.isFinite(g.pitch_deg)) fiAttitude.updatePitch(g.pitch_deg);
+
+      // heading
+      if (Number.isFinite(g.heading_deg)) {
+        const hdg = norm360(g.heading_deg);
+        fiHeading.updateHeading(hdg);
+        if (qs.hdg) qs.hdg.textContent = Math.round(hdg);
+      }
+
+      // airspeed (prefer airspeed, else ground) → km/h
+      if (Number.isFinite(g.airspeed_mps) || Number.isFinite(g.groundspeed_mps)) {
+        const spd_mps = Number.isFinite(g.airspeed_mps) ? g.airspeed_mps : g.groundspeed_mps;
+        const spd_kmh = mps_to_km_per_hour(spd_mps);
+        fiAirspeed.updateAirSpeed(spd_kmh);
+        if (qs.spd) qs.spd.textContent = Math.round(spd_kmh);
+      }
+
+      // vertical speed (m/s → km/min)
+      if (Number.isFinite(g.climb_mps)) fiVertical.updateVerticalSpeed(mps_to_km_per_min(g.climb_mps));
+
+      // altitude (prefer AMSL)
+      let alt_m = null;
+      if (Number.isFinite(g.alt_amsl_m)) alt_m = g.alt_amsl_m;
+      else if (Number.isFinite(g.alt_rel_m)) alt_m = g.alt_rel_m;
+      if (alt_m != null) {
+        fiAltimeter.updateAltitude(alt_m);
+        if (qs.alt) qs.alt.textContent = alt_m.toFixed(1);
+      }
+
+      // turn coordinator (optional yaw rate)
+      if (Number.isFinite(g.yaw_rate_dps)) {
+        const norm = Math.max(-2, Math.min(2, g.yaw_rate_dps / 3));
+        fiCoordinator.updateCoordinator(norm);
+      }
+
+      // battery
+      if (Number.isFinite(g.batt_voltage_v) && qs.battv) qs.battv.textContent = g.batt_voltage_v.toFixed(2);
+      if (Number.isFinite(g.batt_remaining_pct) && qs.battp) qs.battp.textContent = Math.round(g.batt_remaining_pct);
+
+      // mode / armed
+      if (typeof g.mode === "string" && qs.mode) qs.mode.textContent = g.mode;
+      if (typeof g.armed === "boolean" && qs.armed) qs.armed.textContent = g.armed ? "Yes" : "No";
+
+      // gps
+      if (qs.gps && (g.gps_fix_name || Number.isFinite(g.gps_fix_type) || Number.isFinite(g.gps_satellites))) {
+        const fix = g.gps_fix_name || (Number.isFinite(g.gps_fix_type) ? `fix ${g.gps_fix_type}` : "—");
+        const sats = Number.isFinite(g.gps_satellites) ? `${g.gps_satellites} sats` : "";
+        qs.gps.textContent = [fix, sats].filter(Boolean).join(" · ");
+      }
+
+      // map
+      if (Number.isFinite(g.lat) && Number.isFinite(g.lon) && !(g.lat === 0 && g.lon === 0)) {
+        updateMarker(g.lat, g.lon);
+      }
+    }
+
+    const TRAFFIC_TIMEOUT_MS = 1200;
+    let lastTrafficAt = 0;
+    let trafficTimer = null;
+
+    function markTelemetrySeen() {
+      lastTrafficAt = Date.now();
+      if (connText.dataset.state !== 'connected') {
+        setConnUI('connected');
+        showToast('telemetry streaming', true);
+      }
+      // schedule stale check
+      clearTimeout(trafficTimer);
+      trafficTimer = setTimeout(() => {
+        const noTraffic = Date.now() - lastTrafficAt >= TRAFFIC_TIMEOUT_MS;
+        if (noTraffic) {
+          // socket might still be up, but no frames → stale
+          setConnUI('stale');
+          showToast('no telemetry');
+          qs.spd.textContent = '-';
+          qs.alt.textContent = '-';
+          qs.hdg.textContent = '-';
+          qs.battv.textContent = '-';
+          qs.battp.textContent = '-';
+          qs.mode.textContent = '-';
+          qs.gps.textContent = '-';
+          qs.ll.textContent = '-';
         }
-
-        triggerStage2AndUpdateUI();
+      }, TRAFFIC_TIMEOUT_MS + 50);
     }
 
-    if (event.data === "stage3") {
-        function triggerStage3AndUpdateUI() {
-            fetch("/stage3", {
-                method: "POST"
-            })
-            .then(response => {
-                // Check if the response is successful
-                if (response.ok) {
-                    var iframeWindow = document.getElementById("sim-iframe").contentWindow;
-                    iframeWindow.postMessage("set-stage3-active", "http://localhost:8080");
-                    iframeWindow.postMessage("set-stage4-enabled", "http://localhost:8080");
-                } else {
-                    throw new Error('Server responded with a non-OK status');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
+    var telem_roll;
 
-        triggerStage3AndUpdateUI();
-    }
+    // ---------- Socket.IO only ----------
+    const socket = io(CC_URL, { transports: ["websocket","polling"], timeout: 8000 });
 
-    if (event.data === "stage4") {
-        function triggerStage4AndUpdateUI() {
-            fetch("/stage4", {
-                method: "POST"
-            })
-            .then(response => {
-                // Check if the response is successful
-                if (response.ok) {
-                    var iframeWindow = document.getElementById("sim-iframe").contentWindow;
-                    iframeWindow.postMessage("set-stage4-active", "http://localhost:8080");
-                    iframeWindow.postMessage("set-stage5-enabled", "http://localhost:8080");
-                } else {
-                    throw new Error('Server responded with a non-OK status');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
-
-        triggerStage4AndUpdateUI();
-    }
-
-    if (event.data === "stage5") {
-        function triggerStage5AndUpdateUI() {
-            fetch("/stage5", {
-                method: "POST"
-            })
-            .then(response => {
-                // Check if the response is successful
-                if (response.ok) {
-                    var iframeWindow = document.getElementById("sim-iframe").contentWindow;
-                    iframeWindow.postMessage("set-stage5-active", "http://localhost:8080");
-                } else {
-                    throw new Error('Server responded with a non-OK status');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
-
-        triggerStage5AndUpdateUI();
-    }
-
-    if (event.data === "resetWorldClicked") {
-        Swal.fire({
-            title: "Reset Simulator?",
-            text: "This will return the drone flight controller, companion computer, and ground station to their initial state! Drone flight logs will also be deleted.",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            confirmButtonText: "Yes, reset it!"
-        }).then((result) => {
-            if (result.isConfirmed) {
-                
-                // Send a POST request to http://localhost:8000/reset
-                // This will trigger the reset() function in simulator/mgmt/routes.py
-                fetch("/reset", {
-                    method: "POST"
-                });
-
-                var iframeWindow = document.getElementById("sim-iframe").contentWindow;
-                iframeWindow.postMessage("resetWorldCallback", "http://localhost:8080");
-                document.getElementById("sim-iframe").src = document.getElementById("sim-iframe").src;
-
-                // Reload the page after 2 seconds
-                setTimeout(function () {
-                    window.location.reload();
-                }, 2000);
-            }
-        });
-    }
-});
-</script>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        if (window.location.hostname !== 'localhost') {
-            Swal.fire({
-                title: "Access Alert",
-                text: "You are not accessing the application from the standard 'localhost' origin. Would you like to redirect to the correct origin?",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: "Redirect",
-                cancelButtonText: "Stay here"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Redirect to the localhost origin
-                    // Change the port as needed if it's not the default HTTP 80
-                    window.location.hostname = 'localhost';
-                }
-            });
-        }
+    socket.on("connect", () => {
+      console.log("[io] connected", socket.id);
+      setConnUI('connecting');                 // link is up, but waiting for frames
+      showToast("link up; waiting for telemetry…");
     });
-    // wait for 1 second before sending the message to the iframe
-    setTimeout(function () {
-    var iframeWindow = document.getElementById("sim-iframe").contentWindow;
-    if (iframeWindow) {
-        {% for stage in stages %}
-            iframeWindow.postMessage("set-{{stage.code}}-{{stage.status.lower()}}", "http://localhost:8080");
-        {% endfor %}
-    }
-    }, 1000);
 
+    socket.on("disconnect", (reason) => {
+      console.warn("[io] disconnected:", reason);
+      clearTimeout(trafficTimer);
+      setConnUI('disconnected');
+      showToast("telemetry disconnected");
+    });
+
+    socket.on("connect_error", (err) => {
+      console.warn("[io] connect_error", err?.message || err);
+      setConnUI('connecting');
+    });
+
+    // When we see real telemetry, we both apply it and mark traffic.
+    socket.on("telemetry_status", (data) => {
+      const gauges = data?.gauges || data?.status?.gauges || null;
+      if (gauges) {
+        if (gauges.roll_deg){
+          if (gauges.roll_deg !== telem_roll){
+            markTelemetrySeen();
+            telem_roll = gauges.roll_deg;
+            applyG(gauges);
+          }
+        }
+      }
+      // REMOVE this older optimistic reflection:
+      // if (typeof data?.status === "string" && data.status.toLowerCase().includes("connect")) setConnUI('connected');
+    });
+
+    socket.on("gauge_snapshot", (payload) => {
+      const g = payload?.gauges || payload;
+      if (g) {
+        applyG(g);
+      }
+    });
+
+  })();
 </script>
+{% endif %}
 
+<!-- Optional origin guard -->
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    if (window.location.hostname !== 'localhost' && window.Swal) {
+      Swal.fire({
+        title: "Access Alert",
+        text: "You are not accessing the application from the standard 'localhost' origin. Would you like to redirect to the correct origin?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: "Redirect",
+        cancelButtonText: "Stay here"
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.location.hostname = 'localhost';
+        }
+      });
+    }
+  });
+</script>
 {% endblock %}

@@ -658,6 +658,104 @@ progress {
   margin-left: auto;
 }
 
+/* ==== Flight Stage Overlay (mgmt) ==== */
+
+/* Container (use this if you're rendering the overlay in mgmt) */
+#flight-bar {
+  position: absolute;
+  float: right;
+  right: 10px !important;
+  top: 0.5em;
+  z-index: 100;
+  width: 15em;
+  background-color: rgb(51, 51, 51);
+  padding: 5px;
+  border-radius: 5px;
+}
+
+/* Row + numbering */
+.stage-item {
+  display: flex;
+  align-items: center;
+  margin: 0 0 5px 5px; /* left and bottom spacing */
+}
+.stage-item span {
+  margin-right: 10px; /* “1.” spacing before the button */
+  color: #ddd;
+}
+
+/* Base button look used in all states (keeps it consistent across browsers) */
+.flight-stage-btn,
+.loading-stage-btn,
+.active-stage-btn {
+  width: 100%;
+  font-size: 12px;           /* gzweb’s small buttons */
+  text-align: left;          /* left aligned labels */
+  border: none;
+  border-radius: 5px;
+  padding: 6px 10px;
+  color: #fff;
+  background: #444;          /* default idle bg, overridden by states below */
+  transition: background 120ms ease, opacity 120ms ease, box-shadow 120ms ease;
+  cursor: pointer;
+  margin-left: 5px;
+  margin-bottom: 5px !important;
+}
+
+/* Default/inactive */
+.flight-stage-btn {
+  background: #444;          /* neutral */
+}
+
+/* Hover (only when clickable) */
+.flight-stage-btn:hover:not(:disabled) {
+  background: #aea62f;       /* same yellow as loading on hover */
+  cursor: pointer;
+}
+
+/* Loading */
+.loading-stage-btn {
+  background: #aea62f;       /* amber/yellow */
+  cursor: progress;
+}
+
+/* Active/complete */
+.active-stage-btn {
+  background: #4d9577;       /* green */
+  outline: 2px solid #2aaadd;/* subtle cyan ring used in gzweb */
+  cursor: default;
+}
+
+/* Disabled */
+.flight-stage-btn:disabled,
+.loading-stage-btn:disabled,
+.active-stage-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Optional: Focus visibility for keyboard users */
+.flight-stage-btn:focus-visible,
+.loading-stage-btn:focus-visible,
+.active-stage-btn:focus-visible {
+  box-shadow: 0 0 0 2px #2aaadd;
+  outline: none;
+}
+
+/* Optional tiny “toast” if you kept it from the overlay script */
+#toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  background: #111;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  display: none;
+  z-index: 2000;
+}
+
+
 @media (min-width: 576px) {
   .container-sm, .container {
     max-width: 540px;

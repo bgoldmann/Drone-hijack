@@ -2,9 +2,9 @@ name: Build & Push Docker images (multi-arch)
 
 on:
   push:
-    branches: [ "master" ]        # <─ builds on every push to master …
-    tags:    [ "v*.*.*" ]         #    … and on semantic-version tags
-  workflow_dispatch:              # manual runs
+    branches: [ "master" ]
+    tags:    [ "v*.*.*" ]
+  workflow_dispatch:
 
 env:
   REGISTRY: docker.io

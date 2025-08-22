@@ -1,20 +1,22 @@
 services:
-  flight-controller:
-    image: n1ckaleks/damn-vulnerable-drone-flight-controller:latest
-    container_name: flight-controller
+  flight-controller-lite:
+    image: n1ckaleks/damn-vulnerable-drone-flight-controller-lite:latest
+    container_name: flight-controller-lite
     privileged: true
     build:
       context: .
-      dockerfile: ./flight-controller/Dockerfile
+      dockerfile: ./flight-controller/lite/Dockerfile
     volumes:
       - serial-uart-socket:/sockets
+    environment:
+      - LITE=true
     networks:
       simulator:
         ipv4_address: 10.13.0.2
 
-  companion-computer:
-    image: n1ckaleks/damn-vulnerable-drone-companion-computer:latest
-    container_name: companion-computer
+  companion-computer-lite:
+    image: n1ckaleks/damn-vulnerable-drone-companion-computer-lite:latest
+    container_name: companion-computer-lite
     privileged: true
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -22,22 +24,24 @@ services:
       - "3000:3000"
     build:
       context: .
-      dockerfile: ./companion-computer/Dockerfile
+      dockerfile: ./companion-computer/lite/Dockerfile
     depends_on:
-      - flight-controller
+      - flight-controller-lite
     volumes:
       - serial-uart-socket:/sockets
     environment:
+      - LITE=true
       - WIFI_ENABLED
     networks:
       simulator:
         ipv4_address: 10.13.0.3
 
-  ground-control-station:
-    image: n1ckaleks/damn-vulnerable-drone-ground-control-station:latest
-    container_name: ground-control-station
+  ground-control-station-lite:
+    image: n1ckaleks/damn-vulnerable-drone-ground-control-station-lite:latest
+    container_name: ground-control-station-lite
     privileged: true
     environment:
+      - LITE=true
       - WIFI_MODE
       - DISPLAY=${DISPLAY}
       - QT_NO_MITSHM=1
@@ -52,33 +56,27 @@ services:
       - /dev/dri:/dev/dri
     build:
       context: .
-      dockerfile: ./ground-control-station/Dockerfile
+      dockerfile: ./ground-control-station/lite/Dockerfile
     depends_on:
-      - companion-computer
+      - companion-computer-lite
     networks:
       simulator:
         ipv4_address: 10.13.0.4
 
-  simulator:
-    image: n1ckaleks/damn-vulnerable-drone-simulator:latest
-    container_name: simulator
-    privileged: true
-    ulimits:
-      nofile:
-        soft: 1024
-        hard: 524288
+  simulator-lite:
+    container_name: simulator-lite
     build:
       context: .
-      dockerfile: ./simulator/Dockerfile
-    ports:
-      - "8080:8080" # gzweb
-      - "8000:8000" # simulator mgmt
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./simulator/mgmt:/Simulator/mgmt
+      dockerfile: ./simulator/lite/Dockerfile
+    image: n1ckaleks/damn-vulnerable-drone-simulator-lite:latest
+    privileged: true
     environment:
-      - WIFI_ENABLED
-      - LITE=false
+      - LITE=true
+    volumes:
+      - ./simulator/mgmt:/app/simulator/mgmt
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8000:8000"
     networks:
       simulator:
         ipv4_address: 10.13.0.5

@@ -78,10 +78,45 @@ Please review the following instructions carefully to ensure a stable and well p
 
 ## System Requirements
 
+Damn Vulnerable Drone can be run in two modes depending on your available hardware:
+
+### Lite Mode (No GPU Required)
+
+- **Operating System:**
+  - **Kali Linux** (recommended, but Lite mode may run on most Linux distros)
+  - Works on **bare metal** or **VM** environments without GPU passthrough
+
+- **Hardware (Minimum):**
+  - **RAM:** 4–8 GB
+  - **Processor Cores:** 2
+  - **Disk Storage:** 100 GB
+  - **Swap:** 4 GB
+
+- **Graphics:**
+  - No GPU required  
+  - Runs a **2D lightweight simulator** using ArduPilot’s built-in flight dynamics model instead of Gazebo  
+
+- **Software:**
+  - **Docker**
+  - **Docker Compose**
+
+Lite Mode is recommended for users who cannot meet the GPU requirements of Full Mode or want a faster, more lightweight setup.
+
+### Lite Mode Interface
+
+<p align="center">
+  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/Lite-Mode.png?raw=true" alt="Damn Vulnerable Drone Lite Mode"/>
+</p>
+
+---
+
+### Full Mode (3D Environment with Gazebo)
+
 - **Operating System:**
   - **Kali Linux** (no other OS is supported)
   - For best performance, use **bare metal**
-  - If you must use a VM, ensure **GPU passthrough** is enabled
+  - If you must use a VM, ensure **GPU passthrough** is enabled  
+    - See [this guide on Hyper-V GPU passthrough](https://techcommunity.microsoft.com/t5/virtualization/bg-p/Virtualization) for setup help
 
 - **Hardware (Minimum):**
   - **RAM:** 8–16 GB
@@ -90,22 +125,22 @@ Please review the following instructions carefully to ensure a stable and well p
   - **Swap:** 10–12 GB
 
 - **Graphics:**
-  - **Minimum GPU Requirements:**
-    - At least 2 GB of VRAM (4 GB or more recommended for complex Gazebo simulations)
-    - OpenGL 3.0 (or higher) support
-  - **Dedicated GPU** strongly recommended for best performance 
-    - Integrated GPUs may work for simple scenarios but often struggle with advanced simulations
-  - **VM Environments:**
-    - Enable **GPU passthrough** if possible
-    - Enable **3D Acceleration** if possible
-    - Allocate at least 2 GB of virtual video memory for Gazebo to run smoothly
+  - At least 2 GB VRAM (4 GB+ recommended)
+  - OpenGL 3.0 (or higher)
+  - Dedicated GPU strongly recommended
+  - For VMs: Enable **GPU passthrough** and **3D acceleration**
 
 - **Software:**
   - **Docker**
   - **Docker Compose**
 
-> [!CAUTION]
-> Not meeting the above system requirements may cause performance issues or prevent Damn Vulnerable Drone from working properly.
+### Full 3D Mode Interface
+
+<p align="center">
+  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/screenshot-1.png?raw=true" alt="Damn Vulnerable Drone Full Mode"/>
+</p>
+
+---
 
 ## Getting Docker (Key Dependency)
 
@@ -139,13 +174,38 @@ The following instructions are meant to be executed on the latest version of [Ka
 
 `git clone https://github.com/nicholasaleks/Damn-Vulnerable-Drone.git && cd Damn-Vulnerable-Drone`
 
-## Pull or Build Docker Images
+---
 
-`docker compose pull`
+## Pull or Build Docker Container Images
 
-If you’d rather build the images (which tends to be slower than pulling), run the following command to build all Damn Vulnerable Drone images from source:
+You can either pull prebuilt images from Docker Hub or build them locally.
+Choose the appropriate docker-compose file depending on whether you want Full Mode or Lite Mode.
 
-`docker compose build`
+### Pull Images
+
+**Full Mode** (with Gazebo 3D simulator):  
+```
+docker compose -f docker-compose.yaml pull
+```
+
+**Lite Mode** (no GPU, lightweight 2D simulator): 
+```
+docker compose -f docker-compose-lite.yaml pull
+```
+
+### Build Images from Source
+
+If you’d rather build the images yourself (slower than pulling):
+
+**Full Mode** (with Gazebo 3D simulator):  
+```
+docker compose -f docker-compose.yaml build
+```
+
+**Lite Mode** (no GPU, lightweight 2D simulator): 
+```
+docker compose -f docker-compose-lite.yaml build
+```
 
 ## Operating Damn Vulnerable Drone
 
@@ -165,6 +225,9 @@ Usage: sudo ./start.sh [OPTION]
 Start the Damn Vulnerable Drone simulator.
 
 Options:
+  --mode [full|lite]     Choose simulator mode:
+                           - full: 3D environment (GPU + drivers required)
+                           - lite: no GPU, minimal requirements
   --wifi  [wep|wpa2]    Start the simulation with a virtual drone Wi-Fi network.
   --no-wifi   Start the simulation with instant access to the drone network (default).
   -h, --help  Display this help and exit.

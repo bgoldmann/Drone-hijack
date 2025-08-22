@@ -1,0 +1,268 @@
+<script>
+    window.DVD = window.DVD || {};
+    DVD.LOADER_SRC = "{{ url_for('static', filename='images/loader.gif') }}";
+</script>
+
+<!-- Flight controls overlay -->
+<div id="flight-bar" style="position:absolute; right:10px; top:.5em; z-index:100; width:15em; background:#333; padding:6px; border-radius:6px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 4px 6px;">
+      <p style="margin:0; color:#fff; font-weight:600;">Drone Flight Stages</p>
+      <button id="reset-sim" title="Reset Simulator" style="border:0; background:#444; color:#fff; padding:6px 10px; border-radius:6px; cursor:pointer;">
+        Reset
+      </button>
+    </div>
+  
+    <div class="stage-item"><span>1.</span> <button id="stage1" class="flight-stage-btn" disabled>Initial Boot</button></div>
+    <div class="stage-item"><span>2.</span> <button id="stage2" class="flight-stage-btn" disabled>Arm & Take-Off</button></div>
+    <div class="stage-item"><span>3.</span> <button id="stage3" class="flight-stage-btn" disabled>Autopilot Flight</button></div>
+    <div class="stage-item"><span>4.</span> <button id="stage4" class="flight-stage-btn" disabled>Emergency/RTH Landing</button></div>
+    <div class="stage-item"><span>5.</span> <button id="stage5" class="flight-stage-btn" disabled>Post-Flight Analysis</button></div>
+  </div>
+  
+  <!-- Toast container -->
+  <div id="toast" role="status" aria-live="polite" aria-atomic="true" style="display:none;
+    position:fixed; right:16px; bottom:16px; z-index:2000; padding:10px 14px; border-radius:8px;
+    background:#111; color:#fff; box-shadow:0 6px 20px rgba(0,0,0,.25); max-width:60vw;
+    word-break:break-word; font-size:14px; line-height:1.3;"></div>
+  
+  <script>
+    // --- Toast utility (clears old timer on every show) ---
+    window.Toast = (() => {
+      let timer = null;
+      const el = () => document.getElementById('toast');
+  
+      function show(message, { variant = 'info', persist = false, duration = 2000 } = {}) {
+        const node = el(); if (!node) return;
+        if (timer) { clearTimeout(timer); timer = null; }
+  
+        node.textContent = message;
+        node.style.display = 'block';
+        node.style.background = (variant === 'success') ? '#2d6a4f'
+                          : (variant === 'error')   ? '#7a1f1f'
+                          : '#111';
+  
+        if (!persist) timer = setTimeout(hide, duration);
+      }
+  
+      function hide() {
+        const node = el(); if (!node) return;
+        node.style.display = 'none';
+        node.textContent = '';
+        if (timer) { clearTimeout(timer); timer = null; }
+      }
+  
+      return {
+        show, hide,
+        info:    (m, o={}) => show(m, { variant: 'info',    ...o }),
+        success: (m, o={}) => show(m, { variant: 'success', ...o }),
+        error:   (m, o={}) => show(m, { variant: 'error',   ...o }),
+        replace: show
+      };
+    })();
+  
+    // --- Stage status renderer (handles loader markup & cleanup) ---
+    function setStageStatus(n, status) {
+      const b = document.getElementById('stage'+n);
+      if (!b) return;
+  
+      // Remember the base label the first time we see this button
+      if (!b.dataset.label) b.dataset.label = b.textContent.trim();
+  
+      const s = String(status).toLowerCase();
+  
+      // Reset base classes
+      b.disabled = true;
+      b.classList.remove('active-stage-btn','loading-stage-btn','flight-stage-btn');
+  
+      // Leaving loading? remove loader & restore label
+      if (s !== 'loading') {
+        b.querySelector('.loading-stage-img')?.remove();
+        b.textContent = b.dataset.label;
+      }
+  
+      switch (s) {
+        case 'disabled':
+          b.classList.add('flight-stage-btn');
+          break;
+        case 'enabled':
+          b.classList.add('flight-stage-btn');
+          b.disabled = false;
+          break;
+        case 'loading':
+          b.classList.add('loading-stage-btn');
+          b.disabled = true;
+          b.innerHTML =
+              '<img width="16" class="loading-stage-img" src="' + (window.DVD?.LOADER_SRC || '/static/images/loader.gif') +
+              '" style="margin-right:4px; vertical-align:middle;" /> Starting ' + b.dataset.label + '...';
+          break;
+        case 'active':
+          b.classList.add('active-stage-btn');
+          b.disabled = true;
+          Toast.hide();
+          break;
+      }
+    }
+  
+    async function callStage(endpoint, body) {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: body ? {'Content-Type':'application/json'} : undefined,
+        body: body ? JSON.stringify(body) : undefined
+      });
+      if (!res.ok) throw new Error(await res.text().catch(()=> ''));
+      return res;
+    }
+  
+    // --- Reset logic (moved out of gzweb) ---
+    async function doResetFlow() {
+      let proceed = true;
+      if (window.Swal) {
+        const result = await Swal.fire({
+          title: "Reset Simulator?",
+          text: "This will return the drone flight controller, companion computer, and ground station to their initial state. Drone flight logs will also be deleted.",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          confirmButtonText: "Yes, reset it!"
+        });
+        proceed = result.isConfirmed;
+      } else {
+        proceed = window.confirm('Reset simulator and clear logs?');
+      }
+      if (!proceed) return;
+  
+      Toast.info('Resetting simulator...', { persist: true });
+      try {
+        await fetch('/reset', { method:'POST' });
+  
+        for (let i=1;i<=5;i++) setStageStatus(i,'disabled');
+        setStageStatus(1,'enabled');
+  
+        const iframe = document.getElementById('sim-iframe');
+        if (iframe && iframe.contentWindow) {
+          try { iframe.contentWindow.postMessage("resetWorldCallback", "http://localhost:8080"); } catch(_) {}
+          iframe.src = iframe.src;
+        }
+  
+        Toast.success('Simulator reset ✅');
+        setTimeout(()=>window.location.reload(), 1200);
+      } catch (e) {
+        Toast.error('Reset failed. Check server logs.');
+      }
+    }
+    document.getElementById('reset-sim')?.addEventListener('click', doResetFlow);
+  
+    // --- Click bindings for stages (show Initiating toast, set loading -> call -> set next) ---
+    function bindStageClicks(){
+      const actions = {
+        1: async () => {
+          Toast.info('Initiating Stage 1 (Initial Boot)...', { persist: true });
+          setStageStatus(1, 'loading');
+          try {
+            await callStage('/stage1');
+            // Preserve original 8s UX before activating
+            setTimeout(() => {
+              setStageStatus(1,'active');
+              setStageStatus(2,'enabled');
+              Toast.success('Stage 1 active ✅');
+            }, 8000);
+          } catch (e) {
+            setStageStatus(1,'enabled');
+            Toast.error('Stage 1 failed. Check logs.');
+          }
+        },
+        2: async () => {
+          Toast.info('Initiating Stage 2 (Arm & Take-Off)...', { persist: true });
+          setStageStatus(2,'loading');
+          try {
+            await callStage('/stage2');
+            setStageStatus(2,'active');
+            setStageStatus(3,'enabled');
+            Toast.success('Stage 2 active ✅');
+          } catch (e) {
+            setStageStatus(2,'enabled');
+            Toast.error('Stage 2 failed. Check logs.');
+          }
+        },
+        3: async () => {
+          Toast.info('Initiating Stage 3 (Autopilot Flight)...', { persist: true });
+          setStageStatus(3,'loading');
+          try {
+            await callStage('/stage3');
+            setStageStatus(3,'active');
+            setStageStatus(4,'enabled');
+            Toast.success('Stage 3 active ✅');
+          } catch (e) {
+            setStageStatus(3,'enabled');
+            Toast.error('Stage 3 failed. Check logs.');
+          }
+        },
+        4: async () => {
+          Toast.info('Initiating Stage 4 (Emergency/RTH Landing)...', { persist: true });
+          setStageStatus(4,'loading');
+          try {
+            await callStage('/stage4');
+            setStageStatus(4,'active');
+            setStageStatus(5,'enabled');
+            Toast.success('Stage 4 active ✅');
+          } catch (e) {
+            setStageStatus(4,'enabled');
+            Toast.error('Stage 4 failed. Check logs.');
+          }
+        },
+        5: async () => {
+          Toast.info('Initiating Stage 5 (Post-Flight Analysis)...', { persist: true });
+          setStageStatus(5,'loading');
+          try {
+            await callStage('/stage5');
+            setStageStatus(5,'active');
+            Toast.success('Stage 5 active ✅');
+          } catch (e) {
+            setStageStatus(5,'enabled');
+            Toast.error('Stage 5 failed. Check logs.');
+          }
+        }
+      };
+      for (let i=1;i<=5;i++){
+        const btn = document.getElementById('stage'+i);
+        if (btn) btn.addEventListener('click', actions[i]);
+      }
+    }
+  
+    // --- Initialize from server-provided window.__STAGES__ ---
+    (function primeFromServer(){
+      try {
+        const initial = window.__STAGES__ || [];
+        if (!initial.length) { setStageStatus(1,'enabled'); return; }
+        initial.forEach(s=>{
+          const n = Number(String(s.code).replace('stage',''));
+          setStageStatus(n, String(s.status).toLowerCase());
+        });
+      } catch(e) { setStageStatus(1,'enabled'); }
+    })();
+  
+    // --- Optional: react to messages from iframe (if still present) ---
+    window.addEventListener('message', (event) => {
+      const m = String(event.data || '');
+      const match = m.match(/^set-stage(\d+)-(\w+)$/);
+      if (match) {
+        setStageStatus(Number(match[1]), match[2]);
+        if (match[2].toLowerCase() === 'active') {
+          const n = Number(match[1]);
+          if (n < 5) setStageStatus(n+1, 'enabled');
+          Toast.success(`Stage ${n} active ✅`);
+        }
+      }
+    });
+  
+    bindStageClicks();
+  
+    // Exported helpers
+    window.doResetFlow = doResetFlow;
+    window.dvdResetUI = function(){
+      for (let i=1;i<=5;i++) setStageStatus(i,'disabled');
+      setStageStatus(1,'enabled');
+      Toast.info('Simulator reset.', { duration: 1800 });
+    };
+  </script>
+  

@@ -1,30 +1,15 @@
 from __future__ import annotations
 
-"""
-Companion‑computer HTTP / Socket.IO server for Damn Vulnerable Drone.
-
-Changes from the original version
----------------------------------
-* **Dynamic host‑gateway detection** – instead of hard‑coding
-  `host.docker.internal`, we discover the Docker‑Desktop host gateway
-  address at runtime and add it as a default `UdpDestination`.
-* Centralised `get_host_gateway_ip()` helper with fall‑backs for Linux,
-  Darwin (Mac) and plain IPv4 broadcast.
-* `initialize_udp_destinations()` rewrites now guard against duplicates
-  and only insert destinations that resolve.
-* Minor lint / typing fixes (PEP 8 compliant, logging improvements).
-"""
-
 from pathlib import Path
 import os
 import json
 import logging
-import socket
 import subprocess
 import threading
 import time
 from logging.handlers import RotatingFileHandler
 from typing import Optional
+import queue
 
 import rospy
 from flask import (
@@ -45,6 +30,7 @@ from flask_login import (
     logout_user,
 )
 from flask_socketio import SocketIO, emit
+from flask_sock import Sock
 
 from extensions import db
 from mavlink_connection import initialize_socketio, listen_to_mavlink
@@ -58,7 +44,16 @@ from routes.wifi import wifi_bp
 # Globals / singletons
 # ---------------------------------------------------------------------------
 
-socketio: SocketIO = SocketIO()
+socketio = SocketIO(
+    async_mode="threading",
+    cors_allowed_origins="*",
+    logger=False,
+    engineio_logger=False,
+    serve_client=True,
+    path="socket.io",
+)
+sock: Sock = Sock()
+
 login_manager: LoginManager = LoginManager()
 login_manager.login_view = "login"
 login_manager.login_message = "You must be logged in to access this page."
@@ -67,62 +62,36 @@ DATABASE_PATH = "sqlite:///telemetry.db"
 CONFIG_FILE = Path("/interface/config.json")
 LOG_PATH = Path("logs/damn-vulnerable-companion-computer.log")
 
+# ---- WS fanout state (for Flask-Sock) --------------------------------------
+_ws_lock = threading.Lock()
+_ws_queues: set[queue.Queue] = set()
+_last_mav: dict | None = None
+
+
+def _ws_publish(payload: dict) -> None:
+    """Fan out payload to all connected Flask-Sock clients via their queues."""
+    global _last_mav
+    _last_mav = payload
+    with _ws_lock:
+        drop: list[queue.Queue] = []
+        for q in list(_ws_queues):
+            try:
+                q.put_nowait(payload)
+            except queue.Full:
+                try:
+                    _ = q.get_nowait()  # drop oldest
+                except Exception:
+                    pass
+                try:
+                    q.put_nowait(payload)
+                except Exception:
+                    drop.append(q)
+        for q in drop:
+            _ws_queues.discard(q)
+
+
 # ---------------------------------------------------------------------------
 # Helper functions
-# ---------------------------------------------------------------------------
-
-def get_host_gateway_ip() -> Optional[str]:
-    """Return the Docker‑Desktop host‑gateway IPv4 address if reachable.
-
-    Strategy:
-    1. Try the magic hostname ``host.docker.internal`` using a pure IPv4
-       lookup (`getent ahostsv4`). This covers Linux with a recent Docker.
-    2. Fall back to parsing ``ip route`` / ``route -n`` default gateway.
-    3. Final fall‑back: return *None* – caller may choose to use broadcast
-       (255.255.255.255) instead.
-    """
-
-    # 1. Try getent (present in Debian/Ubuntu Alpine, etc.)
-    try:
-        out = subprocess.check_output(
-            ["getent", "ahostsv4", "host.docker.internal"],
-            stderr=subprocess.DEVNULL,
-            text=True,
-        ).strip()
-        if out:
-            # First field of first line is the IPv4.
-            return out.split()[0]
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        pass
-
-    # 2. Parse the default gateway from ip route
-    try:
-        out = subprocess.check_output(
-            ["ip", "route"], stderr=subprocess.DEVNULL, text=True
-        )
-        for line in out.splitlines():
-            if line.startswith("default"):
-                return line.split()[2]
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        pass
-
-    # 3. Older busybox `route -n` (rare)
-    try:
-        out = subprocess.check_output(
-            ["route", "-n"], stderr=subprocess.DEVNULL, text=True
-        )
-        for line in out.splitlines():
-            cols = line.split()
-            if cols and cols[0] == "0.0.0.0":
-                return cols[1]
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        pass
-
-    return None
-
-
-# ---------------------------------------------------------------------------
-# Flask / Socket.IO setup
 # ---------------------------------------------------------------------------
 
 @login_manager.user_loader
@@ -140,37 +109,65 @@ def configure_logging(app: Flask) -> None:
     app.logger.addHandler(file_handler)
 
 
+def get_host_gateway_ip() -> Optional[str]:
+    try:
+        out = subprocess.check_output(
+            ["getent", "ahostsv4", "host.docker.internal"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        if out:
+            return out.split()[0]
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        pass
+    try:
+        out = subprocess.check_output(["ip", "route"], stderr=subprocess.DEVNULL, text=True)
+        for line in out.splitlines():
+            if line.startswith("default"):
+                return line.split()[2]
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        pass
+    try:
+        out = subprocess.check_output(["route", "-n"], stderr=subprocess.DEVNULL, text=True)
+        for line in out.splitlines():
+            cols = line.split()
+            if cols and cols[0] == "0.0.0.0":
+                return cols[1]
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        pass
+    return None
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
     app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
 
     # Initialise extensions
     login_manager.init_app(app)
-    socketio.init_app(app)
-    initialize_socketio(socketio)
+    socketio.init_app(app, cors_allowed_origins="*")
+    sock.init_app(app)  # <-- NEW (Flask-Sock)
+    initialize_socketio(socketio)  # your existing pipeline that emits 'mavlink_message'
     rospy.init_node("camera_display_node", anonymous=True)
 
-    # Flask‑SQLAlchemy
+    # DB
     app.config.update(
         SQLALCHEMY_DATABASE_URI=DATABASE_PATH,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
     )
     db.init_app(app)
-
     configure_logging(app)
 
-    # App configuration file (optional)
     if CONFIG_FILE.exists():
         with CONFIG_FILE.open() as fp:
             app.config.update(json.load(fp))
 
-    # Register blueprints
+    # Blueprints
     app.register_blueprint(telemetry_bp, url_prefix="/telemetry")
     app.register_blueprint(logs_bp, url_prefix="/logs")
     app.register_blueprint(wifi_bp, url_prefix="/wifi")
     app.register_blueprint(camera_bp, url_prefix="/camera")
 
-    # -------------------- Routes --------------------
+    # -------------------- Pages --------------------
 
     @app.route("/")
     @login_required
@@ -211,7 +208,7 @@ def create_app() -> Flask:
                 return jsonify(json.load(fp))
         return jsonify({}), 404
 
-    # --------------- Socket.IO handlers ---------------
+    # -------------------- Socket.IO --------------------
 
     @socketio.on("connect")
     def handle_connect(auth):  # noqa: D401, ANN001
@@ -221,7 +218,6 @@ def create_app() -> Flask:
             db.session.add(telemetry_status)
             db.session.commit()
 
-        # Check if mavlink‑routerd is running when status says so
         if telemetry_status.status in {"Connected", "Connecting"}:
             try:
                 subprocess.run(["pgrep", "-f", "mavlink-routerd"], check=True)
@@ -234,6 +230,53 @@ def create_app() -> Flask:
     @socketio.on("disconnect")
     def handle_disconnect():  # noqa: D401
         emit("telemetry_status", {"status": "disconnected"})
+
+    # ---- Tee 'mavlink_message' to Flask-Sock --------------------------------
+    _orig_emit = socketio.emit
+
+    def _tee_emit(event, data=None, *args, **kwargs):
+        try:
+            if event == "mavlink_message" and data is not None:
+                _ws_publish(data)
+        except Exception:
+            logging.exception("Flask-Sock publish failed")
+        return _orig_emit(event, data, *args, **kwargs)
+
+    socketio.emit = _tee_emit  # monkey-patch after init
+
+    # -------------------- Flask-Sock WS --------------------
+
+    @sock.route("/ws/telemetry")
+    def ws_telemetry(ws):
+        """
+        Plain WebSocket feed for sim-lite.
+        Sends the exact dict your server emits as 'mavlink_message'.
+        """
+        q: queue.Queue = queue.Queue(maxsize=200)
+        with _ws_lock:
+            _ws_queues.add(q)
+
+        # Optional: push last known MAV frame immediately
+        if _last_mav is not None:
+            try:
+                ws.send(json.dumps(_last_mav, default=str))
+            except Exception:
+                pass
+
+        try:
+            while True:
+                payload = q.get()  # block until new frame
+                ws.send(json.dumps(payload, default=str))
+        except Exception:
+            # client disconnected or send failed
+            pass
+        finally:
+            with _ws_lock:
+                _ws_queues.discard(q)
+
+    @app.route("/socket-health")
+    def socket_health():
+        return jsonify({"socketio": True, "ws": "/ws/telemetry", "status": "up"})
 
     return app
 
@@ -251,32 +294,23 @@ def add_default_user() -> None:
 
 
 def initialize_udp_destinations() -> None:
-    """Insert sensible default UDP endpoints if none exist."""
-
     if UdpDestination.query.first():
-        return  # already populated
-
-    # 1. Local MAVProxy/MAVLink consumer inside container
+        return
     db.session.add(UdpDestination(ip="127.0.0.1", port=14540))
 
-    # 2. On‑board Wi‑Fi AP clients (static subnet detection)
     ip_list = subprocess.check_output("hostname -I", shell=True, text=True).split()
     if "192.168.13.1" in ip_list:
         db.session.add(UdpDestination(ip="192.168.13.14", port=14550))
     else:
         db.session.add(UdpDestination(ip="10.13.0.4", port=14550))
 
-    # 3. Ground‑control station inside same Docker‑compose net
     db.session.add(UdpDestination(ip="10.13.0.6", port=14550))
 
-    # 4. External QGroundControl on the host (Docker‑Desktop gateway)
     host_ip = get_host_gateway_ip()
-
     if host_ip:
         if not UdpDestination.query.filter_by(ip=host_ip, port=14550).first():
             db.session.add(UdpDestination(ip=host_ip, port=14550))
     else:
-        # Final fallback: broadcast
         if not UdpDestination.query.filter_by(ip="255.255.255.255", port=14550).first():
             db.session.add(UdpDestination(ip="255.255.255.255", port=14550))
 
@@ -291,8 +325,8 @@ def start_mavlink_thread() -> None:
     while True:
         t = threading.Thread(target=listen_to_mavlink, daemon=True)
         t.start()
-        t.join()  # Block until it exits
-        print("MAVLink thread stopped, restarting in 5 seconds …")
+        t.join()
+        print("MAVLink thread stopped, restarting in 5 seconds …")
         time.sleep(5)
 
 

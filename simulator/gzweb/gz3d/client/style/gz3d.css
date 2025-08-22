@@ -67,7 +67,7 @@
 
 #clock-mouse {
   position: absolute;
-  left: 165px !important;
+  left: 117px !important;
   top: 0.5em;
   z-index: 100;
   width: 11.5em;
@@ -78,7 +78,7 @@
 }
 
 #flight-stage {
-  position: absolute;
+  position: absolute; 
   right: 10px !important;
   top: 0.5em;
   z-index: 100;

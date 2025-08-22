@@ -28,7 +28,6 @@ RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
 
 COPY companion-computer/conf/dhcpd.conf /etc/dhcp/dhcpd.conf
 COPY companion-computer/conf/dnsmasq.conf /etc/dnsmasq.conf
-#COPY companion-computer/conf/hostapd.conf /etc/hostapd.conf
 COPY companion-computer/conf/isc-dhcp-server /etc/default/isc-dhcp-server
 
 WORKDIR /
