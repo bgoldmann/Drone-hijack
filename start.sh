@@ -289,6 +289,7 @@ if [[ "$wifi_simulation" == "y" ]]; then
     if [[ "$wifi_mode" == "wpa2" ]]; then
       export WIFI_MODE="wpa2"
       docker cp "$SCRIPT_DIR/companion-computer/conf/hostapd_wpa2.conf" "$CC_CID":/etc/hostapd.conf
+      docker cp "$SCRIPT_DIR/ground-control-station/conf/wpa_supplicant_wpa2.conf" "$GCS_CID":/etc/wpa_supplicant/wpa_supplicant.conf
     elif [[ "$wifi_mode" == "wep" ]]; then
       unset WIFI_MODE
       docker cp "$SCRIPT_DIR/companion-computer/conf/hostapd_wep.conf" "$CC_CID":/etc/hostapd.conf
