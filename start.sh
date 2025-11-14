@@ -80,10 +80,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 # --- Helpers ---
+# Returns 1 if GPU is Ok, returns 0 if GPU fails
 gpu_ok() {
-  command -v nvidia-smi >/dev/null 2>&1 || return 1
-  docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q '"nvidia"' || return 1
-  return 0
+  command -v nvidia-smi >/dev/null 2>&1 || return 0
+  docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q '"nvidia"' || return 0
+  return 1
 }
 
 check_virtual_interface() {
@@ -168,6 +169,7 @@ if [[ -z "${sim_mode}" ]]; then
 fi
 
 # FULL mode GPU check
+
 if [[ "${sim_mode}" == "full" ]] && ! gpu_ok; then
   echo "GPU runtime not detected (need NVIDIA drivers + nvidia-container-runtime)."
   read -rp "Fall back to Lite mode? [Y/n]: " fb
