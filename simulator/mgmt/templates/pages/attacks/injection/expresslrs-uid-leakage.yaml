@@ -1,0 +1,125 @@
+title: ExpressLRS UID Leakage Attack
+order: 12
+description: Exploiting ExpressLRS protocol vulnerabilities to leak UID and brute force remaining bytes for full control takeover
+difficulty: advanced
+estimated_time: 120
+prerequisites:
+  - drone-discovery
+  - packet-sniffing
+tools_required:
+  - ExpressLRS-compatible transmitter
+  - Python 3
+  - Wireshark
+  - Custom packet analysis scripts
+cve_references:
+  - NCC-Group-ExpressLRS-Advisory
+breadcrumb:
+  - text: Attack Scenarios
+    link: /attacks
+  - text: Injection
+  - text: ExpressLRS UID Leakage Attack
+
+sections:
+  - title: Description
+    content: |
+      ExpressLRS is a popular open-source radio control protocol for FPV drones. The protocol has critical security vulnerabilities 
+      that allow attackers to recover the Unique Identifier (UID) used for binding. Sync packets leak 75% of the UID (3 out of 4 bytes), 
+      leaving only 1 byte to brute force. Combined with weak CRC initialization and flawed FHSS sequence generation, an attacker can 
+      achieve full control takeover within feasible time.<br><br>
+
+      **Impact**: Full control takeover via brute force<br>
+      **Status**: No fix implemented (as of research date)<br>
+      **Attack Complexity**: Medium - requires packet analysis and brute forcing
+
+  - title: Resources
+    content:
+      - text: NCC Group Technical Advisory
+        link: https://www.nccgroup.com/research-blog/technical-advisory-expresslrs-vulnerabilities-allow-for-hijack-of-control-link/
+      - text: ExpressLRS GitHub
+        link: https://github.com/ExpressLRS/ExpressLRS
+      - text: ExpressLRS Documentation
+        link: https://www.expresslrs.org/
+
+  - title: Solution Guide
+    collapsible: true
+    steps:
+      - title: Step 1. Set Up Packet Capture
+        description: |
+          Configure your system to capture ExpressLRS traffic between legitimate transmitter and receiver.
+          ```# Set interface to monitor mode
+          sudo airmon-ng start wlan0
+          # Start Wireshark or tcpdump
+          sudo wireshark
+          ```
+
+      - title: Step 2. Capture Sync Packets
+        description: |
+          Monitor the communication channel and capture sync packets. ExpressLRS sync packets are transmitted 
+          periodically and contain the final 3 bytes of the UID.
+          ```# Filter for ExpressLRS packets
+          # Look for packets with specific ExpressLRS characteristics
+          # Sync packets have identifiable patterns
+          ```
+
+      - title: Step 3. Extract UID Bytes
+        description: |
+          Parse the captured sync packets to extract the leaked UID bytes. The last 3 bytes of the 4-byte UID 
+          are visible in sync packets.
+          ```python
+          # Pseudo-code for UID extraction
+          def extract_uid_from_sync_packet(packet):
+              # Parse packet structure
+              # Extract bytes 1-3 of UID (bytes are leaked)
+              uid_bytes_1_3 = packet[offset:offset+3]
+              return uid_bytes_1_3
+          ```
+
+      - title: Step 4. Analyze CRC Initialization
+        description: |
+          The last two bytes of the UID initialize the CRC checksum. This provides additional information 
+          that can be used to validate potential UID candidates during brute forcing.
+
+      - title: Step 5. Understand FHSS Weakness
+        description: |
+          The Frequency Hopping Spread Spectrum (FHSS) sequence generation is flawed, reducing 256 possible 
+          values to only 128 unique sequences. This simplifies the attack complexity.
+
+      - title: Step 6. Brute Force Remaining Byte
+        description: |
+          With 3 bytes known, only 256 possibilities remain for the first byte. Brute force all possible values.
+          ```python
+          known_bytes = [0x12, 0x34, 0x56]  # Example leaked bytes
+          
+          for first_byte in range(256):
+              full_uid = bytes([first_byte] + known_bytes)
+              # Test if this UID works
+              if test_uid(full_uid):
+                  print(f"Found UID: {full_uid.hex()}")
+                  break
+          ```
+
+      - title: Step 7. Validate UID with CRC
+        description: |
+          Use the CRC initialization pattern to validate potential UIDs before attempting connection, 
+          reducing the number of brute force attempts needed.
+
+      - title: Step 8. Establish Connection
+        description: |
+          Once the correct UID is found, use it to establish a connection to the target receiver.
+          ```# Use ExpressLRS tools or custom script
+          # Connect with discovered UID
+          expresslrs_connect --uid <discovered_uid>
+          ```
+
+      - title: Step 9. Take Control
+        description: |
+          With the correct UID, you now have full control over the drone. Send control commands as if 
+          you were the legitimate operator.
+
+  - title: Mitigation
+    content: |
+      - Use encryption for ExpressLRS binding (discussed but not implemented)
+      - Implement proper UID protection mechanisms
+      - Use stronger binding phrase system
+      - Monitor for unauthorized connections
+      - Consider alternative protocols with better security

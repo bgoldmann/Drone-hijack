@@ -1,0 +1,62 @@
+{
+    "beginner": {
+        "security_level": "low",
+        "wifi_encryption": "wep",
+        "mavlink_auth": false,
+        "attack_difficulty": "beginner",
+        "enable_logging": true,
+        "log_retention_days": 30,
+        "telemetry_rate": 10,
+        "enable_geofence": false,
+        "geofence_radius": 0,
+        "enable_rate_limiting": false,
+        "max_connection_attempts": 100,
+        "session_timeout": 7200,
+        "description": "Low security preset for learning and testing. All attacks enabled, minimal protections."
+    },
+    "intermediate": {
+        "security_level": "medium",
+        "wifi_encryption": "wpa2",
+        "mavlink_auth": false,
+        "attack_difficulty": "intermediate",
+        "enable_logging": true,
+        "log_retention_days": 14,
+        "telemetry_rate": 5,
+        "enable_geofence": true,
+        "geofence_radius": 50,
+        "enable_rate_limiting": true,
+        "max_connection_attempts": 20,
+        "session_timeout": 1800,
+        "description": "Medium security preset with some mitigations enabled. Standard logging and basic protections."
+    },
+    "advanced": {
+        "security_level": "high",
+        "wifi_encryption": "wpa3",
+        "mavlink_auth": true,
+        "attack_difficulty": "advanced",
+        "enable_logging": true,
+        "log_retention_days": 7,
+        "telemetry_rate": 2,
+        "enable_geofence": true,
+        "geofence_radius": 25,
+        "enable_rate_limiting": true,
+        "max_connection_attempts": 5,
+        "session_timeout": 600,
+        "description": "High security preset with most mitigations enabled. Minimal logging and strict protections."
+    },
+    "realistic": {
+        "security_level": "medium",
+        "wifi_encryption": "wpa2",
+        "mavlink_auth": false,
+        "attack_difficulty": "intermediate",
+        "enable_logging": true,
+        "log_retention_days": 90,
+        "telemetry_rate": 10,
+        "enable_geofence": true,
+        "geofence_radius": 100,
+        "enable_rate_limiting": false,
+        "max_connection_attempts": 10,
+        "session_timeout": 3600,
+        "description": "Realistic preset mimicking real-world drone configurations. Balanced security and functionality."
+    }
+}

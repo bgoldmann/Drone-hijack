@@ -1,0 +1,336 @@
+{% extends "pages/index.html" %}
+
+{% block content %}
+<main>
+    <div class="container-xl p-5">
+        <section class="mb-5">
+            <div class="d-flex align-items-center mb-3">
+                <h2 class="mb-0">Attack Monitoring Dashboard</h2>
+                <button class="btn btn-text-dark btn-icon btn-lg text-muted ms-2" type="button"><i class="material-icons">link</i></button>
+            </div>
+            <p>Real-time monitoring of attack scenarios, system metrics, and active connections.</p>
+        </section>
+
+        <!-- Stats Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card card-raised">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <div class="small text-muted">Active Attacks</div>
+                                <div class="h4 mb-0" id="activeAttacks">0</div>
+                            </div>
+                            <div class="ms-2">
+                                <i class="material-icons text-danger">warning</i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-raised">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <div class="small text-muted">Completed Today</div>
+                                <div class="h4 mb-0" id="completedToday">0</div>
+                            </div>
+                            <div class="ms-2">
+                                <i class="material-icons text-success">check_circle</i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-raised">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <div class="small text-muted">MAVLink Msg/s</div>
+                                <div class="h4 mb-0" id="mavlinkRate">0</div>
+                            </div>
+                            <div class="ms-2">
+                                <i class="material-icons text-info">speed</i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-raised">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <div class="small text-muted">Active Connections</div>
+                                <div class="h4 mb-0" id="activeConnections">0</div>
+                            </div>
+                            <div class="ms-2">
+                                <i class="material-icons text-primary">link</i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Active Attack Scenarios -->
+            <div class="col-lg-6">
+                <div class="card card-raised">
+                    <div class="card-header">
+                        <h5 class="mb-0">Active Attack Scenarios</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Scenario</th>
+                                        <th>Status</th>
+                                        <th>Started</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activeScenariosTable">
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">No active attacks</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Resources -->
+            <div class="col-lg-6">
+                <div class="card card-raised">
+                    <div class="card-header">
+                        <h5 class="mb-0">System Resources</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>CPU Usage</span>
+                                <span id="cpuPercent">0%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar" id="cpuBar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Memory Usage</span>
+                                <span id="memPercent">0%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-warning" id="memBar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Network I/O</span>
+                                <span id="networkIO">0 KB/s</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-info" id="networkBar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAVLink Message Rate Graph -->
+            <div class="col-lg-12">
+                <div class="card card-raised">
+                    <div class="card-header">
+                        <h5 class="mb-0">MAVLink Message Rate (Last 60 seconds)</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="mavlinkChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attack Timeline -->
+            <div class="col-lg-12">
+                <div class="card card-raised">
+                    <div class="card-header">
+                        <h5 class="mb-0">Recent Attack Timeline</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="attackTimeline">
+                            <p class="text-muted text-center">Loading timeline...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real-Time Attack Monitoring -->
+            <div class="col-lg-12">
+                <div class="card card-raised">
+                    <div class="card-header">
+                        <h5 class="mb-0">Real-Time Attack Monitoring</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="realtimeAttacks">
+                            <p class="text-muted text-center">No active attacks</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+// Initialize MAVLink rate chart
+const ctx = document.getElementById('mavlinkChart').getContext('2d');
+const mavlinkChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: Array(60).fill('').map((_, i) => i),
+        datasets: [{
+            label: 'Messages per second',
+            data: Array(60).fill(0),
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Update dashboard data
+function updateDashboard() {
+    // Fetch active attacks
+    fetch('/progress/stats')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('activeAttacks').textContent = data.overall.in_progress || 0;
+            document.getElementById('completedToday').textContent = data.overall.completed || 0;
+        })
+        .catch(err => console.error('Error fetching stats:', err));
+    
+    // Fetch active exploit executions
+    fetch('/exploits/active')
+        .then(response => response.json())
+        .then(data => {
+            updateActiveAttacks(data.active);
+        })
+        .catch(err => console.error('Error fetching active exploits:', err));
+    
+    // Fetch attack timeline
+    fetch('/exploits/timeline?limit=10')
+        .then(response => response.json())
+        .then(data => {
+            updateAttackTimeline(data.timeline);
+        })
+        .catch(err => console.error('Error fetching timeline:', err));
+    
+    // Simulate MAVLink rate (in real implementation, this would come from telemetry)
+    const rate = Math.floor(Math.random() * 50) + 10;
+    document.getElementById('mavlinkRate').textContent = rate;
+    
+    // Update chart
+    mavlinkChart.data.datasets[0].data.shift();
+    mavlinkChart.data.datasets[0].data.push(rate);
+    mavlinkChart.update('none');
+    
+    // Simulate system resources
+    const cpu = Math.floor(Math.random() * 40) + 20;
+    const mem = Math.floor(Math.random() * 30) + 40;
+    document.getElementById('cpuPercent').textContent = cpu + '%';
+    document.getElementById('cpuBar').style.width = cpu + '%';
+    document.getElementById('memPercent').textContent = mem + '%';
+    document.getElementById('memBar').style.width = mem + '%';
+    
+    // Update active connections
+    const connections = Math.floor(Math.random() * 5) + 1;
+    document.getElementById('activeConnections').textContent = connections;
+}
+
+function updateActiveAttacks(attacks) {
+    const container = document.getElementById('realtimeAttacks');
+    
+    if (!attacks || attacks.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No active attacks</p>';
+        return;
+    }
+    
+    let html = '<div class="table-responsive"><table class="table table-sm"><thead><tr>';
+    html += '<th>Scenario</th><th>User</th><th>Status</th><th>Elapsed</th></tr></thead><tbody>';
+    
+    attacks.forEach(attack => {
+        const elapsed = Math.floor(attack.elapsed || 0);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        const elapsedStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        html += `<tr>
+            <td>${attack.scenario_id}</td>
+            <td>${attack.user_id}</td>
+            <td><span class="badge bg-warning">Running</span></td>
+            <td>${elapsedStr}</td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+function updateAttackTimeline(timeline) {
+    const container = document.getElementById('attackTimeline');
+    
+    if (!timeline || timeline.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No recent attacks</p>';
+        return;
+    }
+    
+    let html = '<div class="timeline">';
+    
+    timeline.forEach(entry => {
+        const statusClass = entry.status === 'completed' ? 'success' : 
+                           entry.status === 'failed' ? 'danger' : 'warning';
+        const statusIcon = entry.status === 'completed' ? 'check_circle' : 
+                          entry.status === 'failed' ? 'error' : 'schedule';
+        
+        const started = entry.started_at ? new Date(entry.started_at).toLocaleTimeString() : 'N/A';
+        const duration = entry.duration ? `${Math.floor(entry.duration)}s` : '-';
+        
+        html += `<div class="timeline-item mb-3 p-3 border-start border-3 border-${statusClass}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="mb-1">${entry.scenario_id}</h6>
+                    <small class="text-muted">User: ${entry.user_id}</small>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-${statusClass}">
+                        <i class="material-icons" style="font-size: 14px; vertical-align: middle;">${statusIcon}</i>
+                        ${entry.status}
+                    </span>
+                    <br><small class="text-muted">${started}</small>
+                    <br><small class="text-muted">${duration}</small>
+                </div>
+            </div>
+        </div>`;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Update every 2 seconds
+setInterval(updateDashboard, 2000);
+updateDashboard();
+</script>
+{% endblock %}

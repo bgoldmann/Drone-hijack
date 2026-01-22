@@ -18,21 +18,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sqlite3 \
  && rm -rf /var/lib/apt/lists/*
 
-# Add ROS repo (NO Gazebo)
-RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add - && \
-    sh -c "echo 'deb http://packages.ros.org/ros/ubuntu $(lsb_release -cs) main' > /etc/apt/sources.list.d/ros-latest.list" && \
+# Add ROS repo (NO Gazebo; modern signed-by keyring)
+RUN curl -fsSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | gpg --dearmor -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros-latest.list && \
     apt-get update && apt-get install -y --no-install-recommends \
       ros-noetic-ros-base \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --no-cache-dir \
-    Flask \
-    flask-cors \
-    Flask-SQLAlchemy \
-    requests \
-    flask-sock \
-    "python-socketio[client]==5.11.2" \
-    docker
+    "Flask>=3.1.2" \
+    "flask-cors>=4.0.0" \
+    "Flask-SQLAlchemy>=3.1.1" \
+    "requests>=2.31.0" \
+    "flask-sock>=0.7.0" \
+    "python-socketio[client]>=5.14.0" \
+    "docker>=7.1.0" \
+    "pyyaml>=6.0"
 
 # Copy ONLY the mgmt app from the full project
 # IMPORTANT: build context should be the repo root so this path is valid.

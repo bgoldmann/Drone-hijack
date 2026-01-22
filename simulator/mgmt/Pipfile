@@ -4,10 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-flask = "*"
-docker = "*"
-flask-cors = "*"
-flask-sqlalchemy = "*"
+flask = ">=3.1.2"
+docker = ">=7.1.0"
+flask-cors = ">=4.0.0"
+flask-sqlalchemy = ">=3.1.1"
+pyyaml = ">=6.0"
+python-socketio = ">=5.14.0"
+requests = ">=2.31.0"
 
 [dev-packages]
 

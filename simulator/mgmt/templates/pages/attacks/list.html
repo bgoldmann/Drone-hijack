@@ -11,6 +11,65 @@
             <p>Below is the full listing of all attack scenarios grouped by tactic. <span style="color: red">Note: Cells in red are only supported in Wifi-Mode (Full-Deploy)</span></p>
         </section>
 
+        <!-- Search and Filter Controls -->
+        <section class="mb-4">
+            <div class="card card-raised">
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="searchInput" class="form-label">Search Scenarios</label>
+                            <input type="text" class="form-control" id="searchInput" placeholder="Search by name, CVE, or tool...">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="difficultyFilter" class="form-label">Difficulty</label>
+                            <select class="form-select" id="difficultyFilter">
+                                <option value="">All</option>
+                                <option value="beginner">Beginner</option>
+                                <option value="intermediate">Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="categoryFilter" class="form-label">Category</label>
+                            <select class="form-select" id="categoryFilter">
+                                <option value="">All</option>
+                                <option value="Reconnaissance">Reconnaissance</option>
+                                <option value="Protocol Tampering">Protocol Tampering</option>
+                                <option value="Denial of Service">Denial of Service</option>
+                                <option value="Injection">Injection</option>
+                                <option value="Exfiltration">Exfiltration</option>
+                                <option value="Firmware Attacks">Firmware Attacks</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="cveFilter" class="form-label">Has CVE</label>
+                            <select class="form-select" id="cveFilter">
+                                <option value="">All</option>
+                                <option value="yes">Yes</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="sortBy" class="form-label">Sort By</label>
+                            <select class="form-select" id="sortBy">
+                                <option value="title">Title</option>
+                                <option value="difficulty">Difficulty</option>
+                                <option value="time">Estimated Time</option>
+                                <option value="category">Category</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+                            <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+                            <span class="ms-3" id="resultCount"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <div class="table-responsive-lg">
             <table class="table table-bordered" style="border-bottom: #FFF;">
                 <tr>
@@ -25,9 +84,20 @@
                     <td style="border: none; padding: 0px;">
                         <table class="table table-bordered table-sm">
                             {% for attack in categories['Reconnaissance'] %}
-                            <tr>
+                            <tr class="attack-row" 
+                                data-category="Reconnaissance"
+                                data-difficulty="{{ attack.difficulty|default('intermediate') }}"
+                                data-title="{{ attack.title|lower }}"
+                                data-cve="{{ 'yes' if attack.cve_references else 'no' }}"
+                                data-time="{{ attack.estimated_time|default(0) }}">
                                 <td class="ripple-gray">
                                     <a class="link" target="_blank" href="{{ attack.link }}">{{ attack.title }}</a>
+                                    {% if attack.difficulty %}
+                                    <span class="badge bg-secondary ms-2">{{ attack.difficulty }}</span>
+                                    {% endif %}
+                                    {% if attack.cve_references %}
+                                    <span class="badge bg-danger ms-1">CVE</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -36,9 +106,20 @@
                     <td style="border: none; padding: 0px;">
                         <table class="table table-bordered table-sm">
                             {% for attack in categories['Protocol Tampering'] %}
-                            <tr>
+                            <tr class="attack-row"
+                                data-category="Protocol Tampering"
+                                data-difficulty="{{ attack.difficulty|default('intermediate') }}"
+                                data-title="{{ attack.title|lower }}"
+                                data-cve="{{ 'yes' if attack.cve_references else 'no' }}"
+                                data-time="{{ attack.estimated_time|default(0) }}">
                                 <td class="ripple-gray">
                                     <a class="link" target="_blank" href="{{ attack.link }}">{{ attack.title }}</a>
+                                    {% if attack.difficulty %}
+                                    <span class="badge bg-secondary ms-2">{{ attack.difficulty }}</span>
+                                    {% endif %}
+                                    {% if attack.cve_references %}
+                                    <span class="badge bg-danger ms-1">CVE</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -47,9 +128,20 @@
                     <td style="border: none; padding: 0px;">
                         <table class="table table-bordered table-sm">
                             {% for attack in categories['Denial of Service'] %}
-                            <tr>
+                            <tr class="attack-row"
+                                data-category="Denial of Service"
+                                data-difficulty="{{ attack.difficulty|default('intermediate') }}"
+                                data-title="{{ attack.title|lower }}"
+                                data-cve="{{ 'yes' if attack.cve_references else 'no' }}"
+                                data-time="{{ attack.estimated_time|default(0) }}">
                                 <td class="ripple-gray">
                                     <a class="link" target="_blank" href="{{ attack.link }}">{{ attack.title }}</a>
+                                    {% if attack.difficulty %}
+                                    <span class="badge bg-secondary ms-2">{{ attack.difficulty }}</span>
+                                    {% endif %}
+                                    {% if attack.cve_references %}
+                                    <span class="badge bg-danger ms-1">CVE</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -58,9 +150,20 @@
                     <td style="border: none; padding: 0px;">
                         <table class="table table-bordered table-sm">
                             {% for attack in categories['Injection'] %}
-                            <tr>
+                            <tr class="attack-row"
+                                data-category="Injection"
+                                data-difficulty="{{ attack.difficulty|default('intermediate') }}"
+                                data-title="{{ attack.title|lower }}"
+                                data-cve="{{ 'yes' if attack.cve_references else 'no' }}"
+                                data-time="{{ attack.estimated_time|default(0) }}">
                                 <td class="ripple-gray">
                                     <a class="link" target="_blank" href="{{ attack.link }}">{{ attack.title }}</a>
+                                    {% if attack.difficulty %}
+                                    <span class="badge bg-secondary ms-2">{{ attack.difficulty }}</span>
+                                    {% endif %}
+                                    {% if attack.cve_references %}
+                                    <span class="badge bg-danger ms-1">CVE</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -69,9 +172,20 @@
                     <td style="border: none; padding: 0px;">
                         <table class="table table-bordered table-sm">
                             {% for attack in categories['Exfiltration'] %}
-                            <tr>
+                            <tr class="attack-row"
+                                data-category="Exfiltration"
+                                data-difficulty="{{ attack.difficulty|default('intermediate') }}"
+                                data-title="{{ attack.title|lower }}"
+                                data-cve="{{ 'yes' if attack.cve_references else 'no' }}"
+                                data-time="{{ attack.estimated_time|default(0) }}">
                                 <td class="ripple-gray">
                                     <a class="link" target="_blank" href="{{ attack.link }}">{{ attack.title }}</a>
+                                    {% if attack.difficulty %}
+                                    <span class="badge bg-secondary ms-2">{{ attack.difficulty }}</span>
+                                    {% endif %}
+                                    {% if attack.cve_references %}
+                                    <span class="badge bg-danger ms-1">CVE</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -80,9 +194,20 @@
                     <td style="border: none; padding: 0px;">
                         <table class="table table-bordered table-sm">
                             {% for attack in categories['Firmware Attacks'] %}
-                            <tr>
+                            <tr class="attack-row"
+                                data-category="Firmware Attacks"
+                                data-difficulty="{{ attack.difficulty|default('intermediate') }}"
+                                data-title="{{ attack.title|lower }}"
+                                data-cve="{{ 'yes' if attack.cve_references else 'no' }}"
+                                data-time="{{ attack.estimated_time|default(0) }}">
                                 <td class="ripple-gray">
                                     <a class="link" target="_blank" href="{{ attack.link }}">{{ attack.title }}</a>
+                                    {% if attack.difficulty %}
+                                    <span class="badge bg-secondary ms-2">{{ attack.difficulty }}</span>
+                                    {% endif %}
+                                    {% if attack.cve_references %}
+                                    <span class="badge bg-danger ms-1">CVE</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -93,4 +218,123 @@
         </div>
     </div>
 </main>
+
+<script>
+let allAttacks = [];
+
+// Collect all attacks on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const rows = document.querySelectorAll('.attack-row');
+    rows.forEach(row => {
+        allAttacks.push({
+            element: row,
+            category: row.dataset.category,
+            difficulty: row.dataset.difficulty,
+            title: row.dataset.title,
+            cve: row.dataset.cve,
+            time: parseInt(row.dataset.time) || 0
+        });
+    });
+    updateResultCount();
+    
+    // Add event listeners
+    document.getElementById('searchInput').addEventListener('input', applyFilters);
+    document.getElementById('difficultyFilter').addEventListener('change', applyFilters);
+    document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+    document.getElementById('cveFilter').addEventListener('change', applyFilters);
+    document.getElementById('sortBy').addEventListener('change', applyFilters);
+});
+
+function applyFilters() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const difficulty = document.getElementById('difficultyFilter').value;
+    const category = document.getElementById('categoryFilter').value;
+    const cve = document.getElementById('cveFilter').value;
+    const sortBy = document.getElementById('sortBy').value;
+    
+    let visibleCount = 0;
+    
+    allAttacks.forEach(attack => {
+        let visible = true;
+        
+        // Search filter
+        if (searchTerm && !attack.title.includes(searchTerm)) {
+            visible = false;
+        }
+        
+        // Difficulty filter
+        if (difficulty && attack.difficulty !== difficulty) {
+            visible = false;
+        }
+        
+        // Category filter
+        if (category && attack.category !== category) {
+            visible = false;
+        }
+        
+        // CVE filter
+        if (cve && attack.cve !== cve) {
+            visible = false;
+        }
+        
+        // Show/hide row
+        if (visible) {
+            attack.element.style.display = '';
+            visibleCount++;
+        } else {
+            attack.element.style.display = 'none';
+        }
+    });
+    
+    // Sort visible attacks
+    if (sortBy === 'difficulty') {
+        const difficultyOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3 };
+        allAttacks.sort((a, b) => {
+            if (a.element.style.display === 'none' && b.element.style.display === 'none') return 0;
+            if (a.element.style.display === 'none') return 1;
+            if (b.element.style.display === 'none') return -1;
+            return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+        });
+    } else if (sortBy === 'time') {
+        allAttacks.sort((a, b) => {
+            if (a.element.style.display === 'none' && b.element.style.display === 'none') return 0;
+            if (a.element.style.display === 'none') return 1;
+            if (b.element.style.display === 'none') return -1;
+            return a.time - b.time;
+        });
+    } else if (sortBy === 'title') {
+        allAttacks.sort((a, b) => {
+            if (a.element.style.display === 'none' && b.element.style.display === 'none') return 0;
+            if (a.element.style.display === 'none') return 1;
+            if (b.element.style.display === 'none') return -1;
+            return a.title.localeCompare(b.title);
+        });
+    }
+    
+    // Reorder DOM elements
+    allAttacks.forEach(attack => {
+        attack.element.parentNode.appendChild(attack.element);
+    });
+    
+    updateResultCount(visibleCount);
+}
+
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('difficultyFilter').value = '';
+    document.getElementById('categoryFilter').value = '';
+    document.getElementById('cveFilter').value = '';
+    document.getElementById('sortBy').value = 'title';
+    applyFilters();
+}
+
+function updateResultCount(count) {
+    const resultCountEl = document.getElementById('resultCount');
+    if (resultCountEl) {
+        const total = allAttacks.length;
+        const visible = count !== undefined ? count : allAttacks.filter(a => a.element.style.display !== 'none').length;
+        resultCountEl.textContent = `Showing ${visible} of ${total} scenarios`;
+    }
+}
+</script>
 {% endblock %}

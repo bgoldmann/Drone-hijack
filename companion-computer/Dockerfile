@@ -13,9 +13,9 @@ RUN apt-get update && apt-get install -y \
  && pip3 install --no-cache-dir future pymavlink MAVProxy \
  && rm -rf /var/lib/apt/lists/*
 
-# Install ROS
-RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add -
-RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/ros-latest.list'
+# Install ROS (modern signed-by keyring)
+RUN curl -fsSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | gpg --dearmor -o /usr/share/keyrings/ros-archive-keyring.gpg
+RUN echo "deb [signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros-latest.list
 RUN apt update -y && apt install -y ros-noetic-ros-base ros-noetic-gazebo-ros-pkgs ros-noetic-cv-bridge ros-noetic-image-transport
 RUN apt install -y gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-tools gstreamer1.0-rtsp
 RUN apt install -y python3-gi python3-gst-1.0 gir1.2-gst-rtsp-server-1.0
@@ -51,7 +51,10 @@ COPY companion-computer/conf/mavlink-router.conf /etc/mavlink-router/main.conf
 
 # Web Interface Setup
 ###########################
-RUN pip3 install flask docker flask-cors Flask-SQLAlchemy flask-socketio opencv-python-headless Flask-Login flask-sock simple-websocket
+RUN pip3 install --no-cache-dir \
+    "Flask>=3.1.2" "flask-cors>=4.0.0" "Flask-SQLAlchemy>=3.1.1" \
+    "flask-socketio>=5.3.0" "opencv-python-headless>=4.8.0" "Flask-Login>=0.6.0" \
+    "flask-sock>=0.7.0" "simple-websocket>=1.0.0" "docker>=7.1.0"
 COPY companion-computer/interface /interface
 COPY companion-computer/interface/config.json /interface/config.json
 RUN mkdir -p /var/log/mavlink-router

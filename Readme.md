@@ -1,414 +1,781 @@
-# Damn Vulnerable Drone
+# 🚁 Damn Vulnerable Drone - Professional Security Research Platform
 
-The Damn Vulnerable Drone is an intentionally vulnerable drone hacking simulator based on the popular ArduPilot/MAVLink architecture, providing a realistic environment for hands-on drone hacking.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
+[![Docker](https://img.shields.io/badge/docker-ready-brightgreen.svg)](https://www.docker.com/)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/yourusername/damn-vulnerable-drone)
 
-<p align="center">
-  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/Damn-Vulnerable-Drone-Banner.png?raw=true" alt="Damn Vulnerable Drone Logo"/>
-</p>
-
-# Table of Contents
-
-* [About the Damn Vulnerable Drone](#about-damn-vulnerable-drone)
-  * [What is the Damn Vulnerable Drone?](#what-is-the-damn-vulnerable-drone?)
-  * [Why was it built?](#why-was-it-built?)
-  * [How does it work?](#how-does-it-work?)
-  * [Features](#features)
-* [Installation](#installation)
-  * [System Requirements](#system-requirements)
-  * [Getting Docker](#getting-docker-key-dependency)
-  * [Wi-Fi Mode](#wi-fi-mode)
-  * [Non-Wi-Fi Mode](#non-wi-fi-mode)
-* [Architecture](#architecture)
-* [Flight States](#flight-states)
-* [Attack Scenarios](#attack-scenarios)
-* [Screenshots](#screenshots)
-* [Mentions](#mentions)
-* [Community Support](#community-support)
-* [Feedback & Contributions](#feedback-&-contributions)
-* [Maintainers](#maintainers)
-* [Credits](#Credits)
-* [Disclaimer](#disclaimer)
-* [License](#license)
-
-# About the Damn Vulnerable Drone
-
-<p align="center">
-  <a href="https://www.youtube.com/watch?v=EHTQv6IfnwI"><img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/demo.png?raw=true" alt="Damn Vulnerable Drone Demo"/></a>
-</p>
-
-## What is the Damn Vulnerable Drone?
-
-The Damn Vulnerable Drone is a virtually simulated environment designed for offensive security professionals to safely learn and practice drone hacking techniques. It simulates real-world [ArduPilot](https://ardupilot.org/) & [MAVLink](https://mavlink.io/en/) drone architectures and vulnerabilities, offering a hands-on experience in exploiting drone systems. 
-
-## Why was it built?
-
-The Damn Vulnerable Drone aims to enhance offensive security skills within a controlled environment, making it an invaluable tool for intermediate-level security professionals, pentesters, and hacking enthusiasts.
-
-Similar to how pilots utilize flight simulators for training, we can use the Damn Vulnerable Drone simulator to gain in-depth knowledge of real-world drone systems, understand their vulnerabilities, and learn effective methods to exploit them.
-
-The Damn Vulnerable Drone platform is open-source and available at no cost and was specifically designed to address the substantial expenses often linked with drone hardware, hacking tools, and maintenance. Its cost-free nature allows users to immerse themselves in drone hacking without financial concerns. This accessibility makes the Damn Vulnerable Drone a crucial resource for those in the fields of information security and penetration testing, promoting the development of offensive cybersecurity skills in a safe environment.
-
-## How does it work?
-
-The Damn Vulnerable Drone platform operates on the principle of [Software-in-the-Loop (SITL)](https://ardupilot.org/dev/docs/sitl-simulator-software-in-the-loop.html), a simulation technique that allows users to run drone software as if it were executing on an actual drone, thereby replicating authentic drone behaviors and responses.
-
-ArduPilot's SITL allows for the execution of the drone's firmware within a virtual environment, mimicking the behavior of a real drone without the need for physical hardware. This simulation is further enhanced with Gazebo, a dynamic 3D robotics simulator, which provides a realistic environment and physics engine for the drone to interact with. Together, ArduPilot's SITL and Gazebo lay the foundation for a sophisticated and authentic drone simulation experience.
-
-While the current Damn Vulnerable Drone setup doesn't mirror every drone architecture or configuration, the integrated tactics, techniques and scenarios are broadly applicable across various drone systems, models and communication protocols.
-
-## Features
-
-- **Docker-based Environment**: Runs in a completely virtualized docker-based setup, making it accessible and safe for drone hacking experimentation.
-- **Simulated Wireless Networking**: Simulated Wifi (802.11) interfaces to practice wireless drone attacks.
-- **Onboard Camera Streaming & Gimbal**: Simulated RTSP drone onboard camera stream with gimbal and companion computer integration.
-- **Companion Computer Web Interface**: Companion Computer configuration management via web interface and simulated serial connection to Flight Controller.
-- **QGroundControl/MAVProxy Integration**: One-click QGroundControl UI launching (only supported on x86 architecture) with MAVProxy GCS integration.
-- **MAVLink Router Integration**: Telemetry forwarding via MAVLink Router on the Companion Computer Web Interface.
-- **Dynamic Flight Logging**: Fully dynamic Ardupilot flight bin logs stored on a simulated SD Card.
-- **Management Web Console**: Simple to use simulator management web console used to trigger scenarios and drone flight states.
-- **Comprehensive Hacking Scenarios**: Ideal for practicing a wide range of drone hacking techniques, from basic reconnaissance to advanced exploitation.
-- **Detailed Walkthroughs**: If you need help hacking against a particular scenario you can leverage the detailed walkthrough documentation as a spoiler.
-
-# Installation
-
-Please review the following instructions carefully to ensure a stable and well performing Damn Vulnerable Drone lab environment.
-
-> [!NOTE]  
-> Depending on your computer’s performance and internet speed, the full end-to-end installation process including container builds and image pulls, can take between *30-60 minutes*. Be patient and let each step complete before moving forward. 
-
-## System Requirements
-
-Damn Vulnerable Drone can be run in two modes depending on your available hardware:
-
-### Lite Mode (No GPU Required)
-
-- **Operating System:**
-  - **Kali Linux** (recommended, but Lite mode may run on most Linux distros)
-  - Works on **bare metal** or **VM** environments without GPU passthrough
-
-- **Hardware (Minimum):**
-  - **RAM:** 4–8 GB
-  - **Processor Cores:** 2
-  - **Disk Storage:** 100 GB
-  - **Swap:** 4 GB
-
-- **Graphics:**
-  - No GPU required  
-  - Runs a **2D lightweight simulator** using ArduPilot’s built-in flight dynamics model instead of Gazebo  
-
-- **Software:**
-  - **Docker**
-  - **Docker Compose**
-
-Lite Mode is recommended for users who cannot meet the GPU requirements of Full Mode or want a faster, more lightweight setup.
-
-### Lite Mode Interface
-
-<p align="center">
-  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/Lite-Mode.png?raw=true" alt="Damn Vulnerable Drone Lite Mode"/>
-</p>
+> **A comprehensive, intentionally vulnerable drone simulator designed for security research, penetration testing, and educational purposes. Master drone security through hands-on exploitation of real-world vulnerabilities.**
 
 ---
 
-### Full Mode (3D Environment with Gazebo)
+## 📋 Table of Contents
 
-- **Operating System:**
-  - **Kali Linux** (no other OS is supported)
-  - For best performance, use **bare metal**
-  - If you must use a VM, ensure **GPU passthrough** is enabled  
-    - See [this guide on Hyper-V GPU passthrough](https://techcommunity.microsoft.com/t5/virtualization/bg-p/Virtualization) for setup help
-
-- **Hardware (Minimum):**
-  - **RAM:** 8–16 GB
-  - **Processor Cores:** 2–4
-  - **Disk Storage:** 100 GB
-  - **Swap:** 10–12 GB
-
-- **Graphics:**
-  - At least 2 GB VRAM (4 GB+ recommended)
-  - OpenGL 3.0 (or higher)
-  - Dedicated GPU strongly recommended
-  - For VMs: Enable **GPU passthrough** and **3D acceleration**
-
-- **Software:**
-  - **Docker**
-  - **Docker Compose**
-
-### Full 3D Mode Interface
-
-<p align="center">
-  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/screenshot-1.png?raw=true" alt="Damn Vulnerable Drone Full Mode"/>
-</p>
+- [Overview](#-overview)
+- [Key Features](#-key-features)
+- [What You Can Do](#-what-you-can-do)
+- [Attack Payloads & Exploits](#-attack-payloads--exploits)
+- [Drone Manufacturer & Model Coverage Chart](#-drone-manufacturer--model-coverage-chart)
+- [Quick Start](#-quick-start)
+- [Installation](#-installation)
+- [Usage Guide](#-usage-guide)
+- [System Architecture](#-system-architecture)
+- [Documentation](#-documentation)
+- [Statistics](#-statistics)
+- [Legal Notice](#-legal-notice)
+- [Contributing](#-contributing)
+- [Resources](#-resources)
 
 ---
 
-## Getting Docker (Key Dependency)
+## 🎯 Overview
 
-The following instructions are meant to be executed on the latest version of [Kali Linux](https://www.kali.org/).
+**Damn Vulnerable Drone** is a professional-grade security research platform that simulates a vulnerable drone system with **72+ automated exploit scripts** covering **11 attack categories** and **10+ real-world CVEs**. Built on Docker, it provides a safe, isolated environment for learning drone security, penetration testing, and vulnerability research.
 
-**Step 1.** Add the docker apt source
+### Why This Project?
 
-`printf '%s\n' "deb https://download.docker.com/linux/debian bullseye stable" | sudo tee /etc/apt/sources.list.d/docker-ce.list`
-
-**Step 2.** Import the GPG Key
-
-`curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/docker-ce-archive-keyring.gpg`
-
-**Step 3.** Update the apt repository
-
-`sudo apt update -y`
-
-**Step 4.** Install Docker and Docker Compose
-
-`sudo apt install docker-ce docker-ce-cli containerd.io -y`
-
-**Step 5.** Start the Docker Service
-
-`sudo systemctl enable docker --now`
-
-**Step 6.** Add docker permissions to user
-
-`sudo usermod -aG docker $USER`
-
-## Clone the repository
-
-`git clone https://github.com/nicholasaleks/Damn-Vulnerable-Drone.git && cd Damn-Vulnerable-Drone`
+- ✅ **Real-World Vulnerabilities**: Exploits based on actual CVEs affecting commercial drone systems
+- ✅ **Comprehensive Coverage**: 40+ attack scenarios across network, firmware, hardware, and protocol layers
+- ✅ **Educational Focus**: Step-by-step guides, detailed documentation, and hands-on learning
+- ✅ **Production-Ready**: Professional Docker-based architecture with web interfaces
+- ✅ **Research-Backed**: Based on academic research and security advisories
 
 ---
 
-## Pull or Build Docker Container Images
+## ✨ Key Features
 
-You can either pull prebuilt images from Docker Hub or build them locally.
-Choose the appropriate docker-compose file depending on whether you want Full Mode or Lite Mode.
+### 🎓 Educational Platform
+- **Interactive Web Console**: Management dashboard at `http://localhost:8000`
+- **Companion Computer Interface**: Web UI at `http://localhost:3000`
+- **Attack Scenario Guides**: Detailed YAML-based walkthroughs for each exploit
+- **Progress Tracking**: Built-in system to track your learning progress
 
-### Pull Images
+### 🔧 Technical Capabilities
+- **Dual Mode Operation**: Lite mode (no GPU) or Full mode (3D Gazebo simulation)
+- **Docker-Based**: Isolated, reproducible environment
+- **MAVLink Protocol**: Full ArduPilot SITL integration
+- **QGroundControl Support**: Real ground control station integration
+- **RESTful API**: Programmatic access to all features
 
-**Full Mode** (with Gazebo 3D simulator):  
+### 🛡️ Security Research
+- **72+ Exploit Scripts**: Automated Python scripts for all attack vectors
+- **10+ Real CVEs**: Proof-of-concept exploits for documented vulnerabilities
+- **Attack Chains**: Multi-stage attack orchestration
+- **Vulnerability Scanner**: Automated security assessment tools
+
+---
+
+## 🎮 What You Can Do
+
+### 1. **Learn Drone Security**
+- Understand common drone vulnerabilities and attack vectors
+- Practice penetration testing in a safe environment
+- Learn MAVLink protocol security issues
+- Study real-world CVE implementations
+
+### 2. **Conduct Security Research**
+- Test new attack techniques
+- Develop custom exploit scripts
+- Analyze drone communication protocols
+- Research firmware vulnerabilities
+
+### 3. **Train & Certify**
+- Prepare for drone security certifications
+- Train security teams on drone threats
+- Develop defensive strategies
+- Practice incident response
+
+### 4. **Develop Secure Drones**
+- Understand attack vectors to build better defenses
+- Test security implementations
+- Validate security controls
+- Follow secure development practices
+
+---
+
+## 💣 Attack Payloads & Exploits
+
+### 📊 Exploit Statistics
+
+- **Total Exploit Scripts**: 73+
+- **Attack Categories**: 11
+- **Real-World CVEs**: 10+
+- **Attack Scenarios**: 40+
+- **Documented Vulnerabilities**: 46
+
+### 🗂️ Exploit Categories
+
+#### 1. **Injection Attacks** (20 scripts)
+Inject malicious commands and data into drone systems.
+
+| Exploit | Description | CVE | Drone Models |
+|---------|-------------|-----|--------------|
+| `hail_mary_attack.py` | Automated multi-vector exploitation (recon, scan, exploit) | Multiple | ArduPilot, PX4, Generic MAVLink drones |
+| `mavlink_inject.py` | Inject MAVLink commands | - | ArduPilot, PX4, Generic MAVLink drones |
+| `waypoint_override.py` | Override mission waypoints | - | ArduPilot, PX4, Generic MAVLink drones |
+| `buffer_overflow_cve_2024_40427.py` | Stack buffer overflow | CVE-2024-40427 (CVSS 7.9) | PX4-Autopilot v1.14.3 |
+| `buffer_overflow_cve_2024_38951.py` | MAVLink message overflow | CVE-2024-38951 (CVSS 6.5) | PX4-Autopilot v1.12.3, v1.14.3 |
+| `logger_overflow_cve_2024_38952.py` | Logger buffer overflow | CVE-2024-38952 (CVSS 7.5) | PX4-Autopilot v1.12.3, v1.14.3 |
+| `use_after_free_cve_2025_9020.py` | Use-after-free vulnerability | CVE-2025-9020 (CVSS 4.5) | PX4-Autopilot up to v1.15.4 |
+| `trajectory_overflow_cve_2025_5640.py` | Trajectory waypoint overflow | CVE-2025-5640 (High) | PX4-Autopilot v1.12.3 |
+| `flight_path_manipulation_cve_2024_29460.py` | Flight path manipulation | CVE-2024-29460 (CVSS 6.6) | PX4-Autopilot |
+| `breach_return_point_rce_cve_2024_30799.py` | Remote code execution | CVE-2024-30799 (CVSS 4.4) | PX4-Autopilot |
+| `geofence_bypass.py` | Bypass geofence restrictions | CVE-2024-30800 | PX4-Autopilot, ArduPilot |
+| `expresslrs_uid_leakage.py` | ExpressLRS UID leakage | - | FPV drones with ExpressLRS protocol |
+| `mission_race_condition.py` | Race condition in missions | CVE-2024-24254, CVE-2024-24255 | PX4-Autopilot |
+| `parameter_manipulation.py` | Modify critical parameters | - | ArduPilot, PX4, Generic MAVLink drones |
+| `return_to_home_override.py` | Override home position | - | ArduPilot, PX4, Generic MAVLink drones |
+| `gimbal_takeover.py` | Camera gimbal control | - | ArduPilot, PX4, Generic MAVLink drones |
+| `flight_mode_injection.py` | Force flight mode changes | - | ArduPilot, PX4, Generic MAVLink drones |
+| `gcs_spoofing.py` | Ground control station spoofing | - | ArduPilot, PX4, Generic MAVLink drones |
+| `web_ui_brute_force.py` | Brute force web UI login | - | Drones with companion computer web UI |
+| `companion_computer_exploit.py` | Companion computer exploitation | - | Drones with companion computer (Raspberry Pi, etc.) |
+
+**Usage Example:**
+```bash
+# Hail Mary Attack - Automated comprehensive exploitation
+python3 exploits/injection/hail_mary_attack.py udp:127.0.0.1:14550
+python3 exploits/injection/hail_mary_attack.py 10.13.0.0/24 --output report.json
+
+# Buffer overflow attack
+python3 exploits/injection/buffer_overflow_cve_2024_40427.py udp:127.0.0.1:14550
+
+# Geofence bypass
+python3 exploits/injection/geofence_bypass.py udp:127.0.0.1:14550 disable
 ```
-docker compose -f docker-compose.yaml pull
+
+#### 2. **Protocol Tampering** (9 scripts)
+Manipulate telemetry and sensor data to mislead operators.
+
+| Exploit | Description | Drone Models |
+|---------|-------------|--------------|
+| `gps_spoofing.py` | Inject fake GPS coordinates | ArduPilot, PX4, Generic MAVLink drones |
+| `battery_spoofing.py` | Spoof battery telemetry | ArduPilot, PX4, Generic MAVLink drones |
+| `attitude_spoofing.py` | Inject false attitude data | ArduPilot, PX4, Generic MAVLink drones |
+| `sensor_data_injection.py` | Inject IMU/barometer/magnetometer data | ArduPilot, PX4, Generic MAVLink drones |
+| `vfr_hud_spoofing.py` | Spoof Visual Flight Rules HUD data | ArduPilot, PX4, Generic MAVLink drones |
+| `system_status_spoofing.py` | Manipulate system status messages | ArduPilot, PX4, Generic MAVLink drones |
+| `satellite_spoofing.py` | Falsify GPS satellite count | ArduPilot, PX4, Generic MAVLink drones |
+| `emergency_status_spoofing.py` | Inject false emergency status | ArduPilot, PX4, Generic MAVLink drones |
+| `critical_error_spoofing.py` | Spoof critical error messages | ArduPilot, PX4, Generic MAVLink drones |
+
+**Usage Example:**
+```bash
+# GPS spoofing attack
+python3 exploits/tampering/gps_spoofing.py udp:127.0.0.1:14550 37.7749 -122.4194 100
+
+# Battery spoofing
+python3 exploits/tampering/battery_spoofing.py udp:127.0.0.1:14550 10.0 0 10 --trigger-warning
 ```
 
-**Lite Mode** (no GPU, lightweight 2D simulator): 
-```
-docker compose -f docker-compose-lite.yaml pull
-```
+#### 3. **Denial of Service (DoS)** (7 scripts)
+Disrupt drone operations and communication.
 
-### Build Images from Source
+| Exploit | Description | Drone Models |
+|---------|-------------|--------------|
+| `wifi_deauth.py` | WiFi deauthentication attack | WiFi-enabled drones (DJI, Parrot, etc.) |
+| `communication_flooding.py` | Flood MAVLink channel | ArduPilot, PX4, Generic MAVLink drones |
+| `geofence_attack.py` | Trigger false geofence violations | ArduPilot, PX4, Generic MAVLink drones |
+| `flight_termination.py` | Send flight termination command | ArduPilot, PX4, Generic MAVLink drones |
+| `gps_offset_glitching.py` | GPS offset glitching | ArduPilot, PX4, Generic MAVLink drones |
+| `denial_of_takeoff.py` | Prevent drone from taking off | ArduPilot, PX4, Generic MAVLink drones |
+| `ros_topic_flooding.py` | ROS topic flooding | ROS-based drones (companion computers) |
 
-If you’d rather build the images yourself (slower than pulling):
+**Usage Example:**
+```bash
+# Communication flooding
+python3 exploits/dos/communication_flooding.py udp:127.0.0.1:14550 --duration 60
 
-**Full Mode** (with Gazebo 3D simulator):  
-```
-docker compose -f docker-compose.yaml build
-```
-
-**Lite Mode** (no GPU, lightweight 2D simulator): 
-```
-docker compose -f docker-compose-lite.yaml build
-```
-
-## Operating Damn Vulnerable Drone
-
-Damn Vulnerable Drone includes three useful bash scripts which will help you manage the state of your simulator.
-
-#### Starting Damn Vulnerable Drone
-
-The start script is used to start Damn Vulnerable Drone simulator. This script will automatically create a `dvd.log` log file in the project directory, which you can use to view the simulator logs. 
-
-> [!TIP]  
-> If you have not already built or pulled Damn Vulnerable Drone images the `start.sh` script will automatically pull and build them for you.
-
-```
-sudo ./start.sh -h
-
-Usage: sudo ./start.sh [OPTION]
-Start the Damn Vulnerable Drone simulator.
-
-Options:
-  --mode [full|lite]     Choose simulator mode:
-                           - full: 3D environment (GPU + drivers required)
-                           - lite: no GPU, minimal requirements
-  --wifi  [wep|wpa2]    Start the simulation with a virtual drone Wi-Fi network.
-  --no-wifi   Start the simulation with instant access to the drone network (default).
-  -h, --help  Display this help and exit.
-
-Example:
-  sudo ./start.sh --wifi wpa2     # Starts with virtual Wi-Fi in WPA2 mode
-  sudo ./start.sh --no-wifi   # Starts without virtual Wi-Fi
+# WiFi deauthentication
+python3 exploits/dos/wifi_deauth.py wlan0mon 192.168.13.1
 ```
 
-#### Stop
+#### 4. **Exfiltration** (6 scripts)
+Extract sensitive data from drone systems.
 
-The stop script is used to perform a full cleanup of the Damn Vulnerable Drone simulator and all of its virtual interface artifacts. Stop logs are also appended to the `dvd.log` log file.
+| Exploit | Description | Drone Models |
+|---------|-------------|--------------|
+| `flight_log_extraction.py` | Extract ArduPilot BIN logs | ArduPilot, PX4, Generic MAVLink drones |
+| `mission_extraction.py` | Download mission waypoints | ArduPilot, PX4, Generic MAVLink drones |
+| `parameter_extraction.py` | Extract all system parameters | ArduPilot, PX4, Generic MAVLink drones |
+| `camera_feed_eavesdropping.py` | Intercept RTSP camera streams | Drones with RTSP camera streaming |
+| `wifi_client_data_leak.py` | Extract data from WiFi clients | WiFi-enabled drones |
+| `ftp_eavesdropping.py` | Intercept FTP traffic and credentials | Drones with FTP services |
 
-`sudo ./stop.sh`
+**Usage Example:**
+```bash
+# Extract flight logs
+python3 exploits/exfiltration/flight_log_extraction.py udp:127.0.0.1:14550
 
-#### Status
+# Extract mission data
+python3 exploits/exfiltration/mission_extraction.py udp:127.0.0.1:14550 mission.json
+```
 
-If you ever want to check the status of your simulator you can run the status script as shown below.
+#### 5. **Reconnaissance** (7 scripts)
+Gather intelligence about drone systems.
 
-`sudo ./status.sh`
+| Exploit | Description | Drone Models |
+|---------|-------------|--------------|
+| `wifi_crack.py` | Crack WiFi passwords (WEP/WPA2) | WiFi-enabled drones (DJI Spark, Mavic Air, Mini series) |
+| `drone_discovery.py` | Discover drones on network | All MAVLink-compatible drones |
+| `packet_sniffing.py` | Capture and analyze MAVLink traffic | ArduPilot, PX4, Generic MAVLink drones |
+| `protocol_fingerprinting.py` | Identify system capabilities | ArduPilot, PX4, Generic MAVLink drones |
+| `gps_telemetry_tracking.py` | Track drone GPS position in real-time | GPS-enabled drones |
+| `gcs_discovery.py` | Ground control station discovery | All MAVLink-compatible drones |
+| `companion_computer_discovery.py` | Companion computer service discovery | Drones with companion computers |
 
-### Wi-Fi Mode 
+**Usage Example:**
+```bash
+# WiFi password cracking
+python3 exploits/recon/wifi_crack.py wlan0mon --target SSID --mode wep
 
-"Wi-Fi Mode" (`--wifi`) allows for the most realistic virtual drone hacking simulation. It deploys a virtually simulated wireless network that you can interact with. This virtual wifi network acts as the data-link connection between the Ground Station and Drone Companion Computer, allowing for interesting scenarios from your attacker machine. When you deploy the Damn Vulnerable Drone using Wi-Fi Mode you will have access to the "Drone_Wifi" SSID and 192.168.13.0/24 network. There are two wifi modes supported WEP and WPA2.
+# Packet sniffing
+python3 exploits/recon/packet_sniffing.py udp:127.0.0.1:14550 --duration 300
+```
 
-> [!WARNING]  
-> The 10.13.0.0/24 network is used to run the simulator infrastructure, should you attack this network, especially the simulator container on `10.13.0.5` this could cause your instance of Damn Vulnerable Drone to crash, warranting a potentially lengthy rebuild. 
+#### 6. **Man-in-the-Middle (MITM)** (1 script)
+Intercept and manipulate communications.
 
-### Non-Wi-Fi Mode
+| Exploit | Description | Drone Models |
+|---------|-------------|--------------|
+| `mavlink_mitm.py` | MAVLink man-in-the-middle proxy | ArduPilot, PX4, Generic MAVLink drones |
 
-"Non-Wi-Fi Mode" (`--no-wifi`) essentially only runs the Damn Vulnerable Drone docker containers.
-Unlike "Wi-Fi Mode" you are not limited to only running "Non-Wi-Fi Mode" within a Kali Linux VM. You'll be able to practice attacking the Damn Vulnerable Drone using just the stood up containers via `docker compose up --build`
+**Usage Example:**
+```bash
+# MITM attack
+python3 exploits/mitm/mavlink_mitm.py udp:127.0.0.1:14550 udp:10.13.0.2:14550
+```
 
-> [!IMPORTANT]  
-> Not, "Non-Wi-Fi Mode" does not support wifi simulations and you will need to assume that you have an established initial access foothold on the drone data-link connection (via the 10.13.0.0/24 network)
+#### 7. **Replay Attacks** (2 scripts)
+Capture and replay commands.
 
-## Architecture
+| Exploit | Description | Drone Models |
+|---------|-------------|--------------|
+| `command_replay.py` | Capture and replay MAVLink commands | ArduPilot, PX4, Generic MAVLink drones |
+| `telemetry_replay.py` | Telemetry replay attack | ArduPilot, PX4, Generic MAVLink drones |
 
-The Damn Vulnerable Drone simulation and core drone architectural components are integrated within Docker containers, providing a stable, isolated environment for each component of the drone system. Docker facilitates easy setup, consistent performance across different systems, and simplifies the process of simulating complex drone architectures and scenarios.
+**Usage Example:**
+```bash
+# Capture commands
+python3 exploits/replay/command_replay.py udp:127.0.0.1:14550 capture commands.json 60
 
-Below is a high-level overview of the Damn Vulnerable Drone architecture:
+# Replay commands
+python3 exploits/replay/command_replay.py udp:127.0.0.1:14550 replay commands.json
+```
 
-<p align="center">
-  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/Damn-Vulnerable-Drone-Architecture.png?raw=true" alt="Damn Vulnerable Drone Architecture"/>
-</p>
+#### 8. **Network Attacks** (2 scripts)
+Network-level exploitation.
 
-| Component           | Description                                                                                                                                                              | Docker IP | Wireless IP    |
-|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|----------------|
-| Flight Controller   | This is the brain of the drone, running the ArduPilot firmware to simulate a drone's flight controls. It interacts with the Gazebo simulator through a Gazebo driver, allowing it to process virtual sensor data and respond as if it were flying in the real world.                                                                                                        | 10.13.0.2 | -              |
-| Companion Computer  | The Companion Computer (attached to the drone) handles higher-level processing tasks that are too complex for the flight controller. It manages wireless networking, telemetry logs, facilitates camera streaming for surveillance or reconnaissance, and interfaces with guidance systems for autonomous operations.                            | 10.13.0.3 | 192.168.13.1   |
-| Ground Control Station | This component acts as the remote pilot's interface, providing mission planning capabilities, flight mapping, video streaming, and joystick control inputs. It communicates with the flight controller and companion computer over a simulated wireless MAVLink connection.                                                            | 10.13.0.4 | 192.168.13.14   |
-| Simulator            | Gazebo provides a richly detailed 3D world where the physics of drone flight are accurately modeled. This allows for realistic simulations of how the drone would react to control inputs and environmental factors. It’s here that the rotors spin, and the virtual drone takes to the skies, all under the watchful control of the Simulator Management Web Console. Warning: Try not to target the simulator directly as this may break the Damn Vulnerable Drone | 10.13.0.5 | -              |
+| Exploit | Description | Drone Models |
+|---------|-------------|--------------|
+| `arp_spoofing.py` | ARP spoofing for MITM attacks | Network-connected drones |
+| `dns_spoofing.py` | DNS spoofing | Network-connected drones |
 
+#### 9. **Firmware Attacks** (3 scripts)
+Firmware-level exploitation.
 
-## Flight States
+| Exploit | Description | Drone Models |
+|---------|-------------|--------------|
+| `firmware_extraction.py` | Extract firmware from flight controller | ArduPilot, PX4, Generic flight controllers |
+| `firmware_analysis.py` | Analyze firmware binaries for vulnerabilities | All drone firmware types |
 
-The Damn Vulnerable Drone has a range of flight states. Each flight state can be trigger by clicking on their buttons in the UI (http://localhost:8000). The ability to simulate these various flight states allows users to test and exploit different aspects of the drones operations. By clicking these states, you are essentially triggering the GCS to issue commands to the drone.
+#### 10. **Hardware Attacks** (1 script)
+Hardware-level exploitation.
 
-<p align="center">
-  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/flight-states.png?raw=true" alt="Damn Vulnerable Drone Flight States"/>
-</p>
+| Exploit | Description | CVE | Drone Models |
+|---------|-------------|-----|--------------|
+| `holy_stone_ble_rce_cve_2024_52876.py` | Holy Stone BLE RCE | CVE-2024-52876 (CVSS 7.5) | Holy Stone drones with HSRID01 Remote ID Module |
 
-**1. Initial Boot:**
-This simulates the drone's startup sequence, where all systems are initialized. Clicking this will simulate you "pressing" the power on button on the drone flight controller, allowing for the companion computer to establish a connection to it. This phase is critical for security/safety checks, calibration and ensuring communication protocols are setup before flight.
+#### 11. **Infrastructure Payloads** (4 scripts)
+Advanced infrastructure attack vectors (2026 research).
 
-**2. Arm & Takeoff**
-The phase where the drone transitions from a stationary state to airborne, testing the responsiveness of flight controls and the integrity of take-off protocols. Note: This may take some time to complete as the drone requires GPS & EKF3 to be ready)
+| Exploit | Description | Drone Models |
+|---------|-------------|--------------|
+| `wireless_network_exploit.py` | Wireless network exploitation from drone | Any drone capable of carrying payload (2026 research) |
+| `data_interception.py` | Intercept wireless communications | Any drone with wireless interception capability |
+| `physical_payload_delivery.py` | Simulate physical payload delivery | Any drone with payload delivery capability |
+| `multi_vector_attack.py` | Multi-vector infrastructure attack coordination | Any drone platform (coordinated attacks) |
 
-**3. Autopilot Flight**
-Represents the drone's ability to navigate autonomously based on predefined waypoints or dynamic commands, a vital state for exploring vulnerabilities in navigation and control systems.
+---
 
-**4. Emergency / Return-To-Land**
-Simulates the drone's emergency protocols, automatically returning to a home location upon triggering fail-safes or loss of control signals, which can be a target for exploitation in hacking scenarios.
+## 📊 Drone Manufacturer & Model Coverage Chart
 
-**5. Post-Flight Data Processing**
-This state involves the handling of all data collected during the flight, including telemetry and logs, making it an important phase for understanding data exfiltration and integrity attacks.
+This comprehensive chart shows which drone manufacturers and models are covered by each exploit payload.
 
-# Attack Scenarios
+### By Manufacturer
 
-The full list of Damn Vulnerable Drone attack scenarios and detailed walkthroughs can be found in the project's wiki here: [https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Attack-Scenarios](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Attack-Scenarios)
+#### **PX4-Autopilot** (DroneDev Foundation)
+| Exploit | Model/Firmware Version | CVE |
+|---------|------------------------|-----|
+| `buffer_overflow_cve_2024_40427.py` | PX4-Autopilot v1.14.3 | CVE-2024-40427 |
+| `buffer_overflow_cve_2024_38951.py` | PX4-Autopilot v1.12.3, v1.14.3 | CVE-2024-38951 |
+| `logger_overflow_cve_2024_38952.py` | PX4-Autopilot v1.12.3, v1.14.3 | CVE-2024-38952 |
+| `use_after_free_cve_2025_9020.py` | PX4-Autopilot up to v1.15.4 | CVE-2025-9020 |
+| `trajectory_overflow_cve_2025_5640.py` | PX4-Autopilot v1.12.3 | CVE-2025-5640 |
+| `flight_path_manipulation_cve_2024_29460.py` | PX4-Autopilot (all versions) | CVE-2024-29460 |
+| `breach_return_point_rce_cve_2024_30799.py` | PX4-Autopilot (all versions) | CVE-2024-30799 |
+| `geofence_bypass.py` | PX4-Autopilot (all versions) | CVE-2024-30800 |
+| `mission_race_condition.py` | PX4-Autopilot (all versions) | CVE-2024-24254, CVE-2024-24255 |
+| `hail_mary_attack.py` | All PX4-based drones | Automated multi-vector attack |
+| `mavlink_inject.py` | All PX4-based drones | - |
+| `waypoint_override.py` | All PX4-based drones | - |
+| `parameter_manipulation.py` | All PX4-based drones | - |
+| `return_to_home_override.py` | All PX4-based drones | - |
+| `gimbal_takeover.py` | All PX4-based drones | - |
+| `flight_mode_injection.py` | All PX4-based drones | - |
+| `gcs_spoofing.py` | All PX4-based drones | - |
+| `gps_spoofing.py` | All PX4-based drones | - |
+| `battery_spoofing.py` | All PX4-based drones | - |
+| `attitude_spoofing.py` | All PX4-based drones | - |
+| `sensor_data_injection.py` | All PX4-based drones | - |
+| `vfr_hud_spoofing.py` | All PX4-based drones | - |
+| `system_status_spoofing.py` | All PX4-based drones | - |
+| `satellite_spoofing.py` | All PX4-based drones | - |
+| `emergency_status_spoofing.py` | All PX4-based drones | - |
+| `critical_error_spoofing.py` | All PX4-based drones | - |
+| `communication_flooding.py` | All PX4-based drones | - |
+| `geofence_attack.py` | All PX4-based drones | - |
+| `flight_termination.py` | All PX4-based drones | - |
+| `gps_offset_glitching.py` | All PX4-based drones | - |
+| `denial_of_takeoff.py` | All PX4-based drones | - |
+| `flight_log_extraction.py` | All PX4-based drones | - |
+| `mission_extraction.py` | All PX4-based drones | - |
+| `parameter_extraction.py` | All PX4-based drones | - |
+| `packet_sniffing.py` | All PX4-based drones | - |
+| `protocol_fingerprinting.py` | All PX4-based drones | - |
+| `mavlink_mitm.py` | All PX4-based drones | - |
+| `command_replay.py` | All PX4-based drones | - |
+| `telemetry_replay.py` | All PX4-based drones | - |
+| `firmware_extraction.py` | All PX4-based drones | - |
 
-| Reconnaissance                                      | Protocol Tampering                                | Denial of Service                                | Injection                                              | Exfiltration                                        | Firmware Attacks                                |
-|----------------------------------------------------|---------------------------------------------------|--------------------------------------------------|--------------------------------------------------------|---------------------------------------------------|-------------------------------------------------|
-| [Wifi Analysis & Cracking](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Wifi-Analysis-&-Cracking) | [Attitude Spoofing](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Attitude-Spoofing) | [Wifi Deauth Attack](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Wifi-Deauth-Attack) | [Ground Control Station Spoofing](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Ground-Control-Station-Spoofing) | [FTP Eavesdropping](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/FTP-Eavesdropping) | [Firmware Modding](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Firmware-Modding) |
-| [Drone Discovery](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Drone-Discovery)  | [Battery Spoofing](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Battery-Spoofing) | [Geofencing Attack](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Geofencing-Attack) | [Camera Gimbal Takeover](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Camera-Gimbal-Takeover) | [Parameter Extraction](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Parameter-Extraction) | [Firmware Decompile](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Firmware-Decompile) |
-| [Companion Computer Detection](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Companion-Computer-Detection) | [GPS Spoofing](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/GPS-Spoofing)   | [GPS Offset Glitching](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/GPS-Offset-Glitching) | [GPS Data Injection](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/GPS-Data-Injection) | [Wifi Client Data Leak](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Wifi-Client-Data-Leak) | |
-| [Ground Control Station Discovery](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Ground-Control-Station-Discovery) | [Critical Error Spoofing](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Critical-Error-Spoofing) | [Flight Termination](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Flight-Termination) | [Return to Home Point Override](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Return-to-Home-Point-Override) | [Flight Log Extraction](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Flight-Log-Extraction) | |
-| [Packet Sniffing](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Packet-Sniffing)  | [Emergency Status Spoofing](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Emergency-Status-Spoofing) | [Camera Feed ROS Topic Flooding](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Camera-Feed-ROS-Topic-Flooding) | [Companion Computer Web UI Login Brute Force](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Companion-Computer-Web-UI-Login-Brute-Force) | [Camera Feed Eavesdropping](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Camera-Feed-Eavesdropping) | |
-| [Protocol Fingerprinting](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Protocol-Fingerprinting) | [Satellite Spoofing](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Satellite-Spoofing) | [Denial-of-Takeoff](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Denial-of-Takeoff) | [Waypoint Injection](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Waypoint-Injection) | [Mission Extraction](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Mission-Extraction) | |
-| [Drone GPS & Telemetry Detection](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Drone-GPS-&-Telemetry-Detection) | [VFR HUD Spoofing](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/VFR-HUD-Spoofing) | [Communication Link Flooding](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Communication-Link-Flooding) | [Companion Computer Takeover](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Companion-Computer-Takeover) | | |
-|                                                    | [System Status Spoofing](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/System-Status-Spoofing) |                                                  | [MAVLink Injection Attack](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/MAVLink-Injection-Attack) | | |
-|                                                    |                                                   |                                                  | [Flight Mode Injection](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/Flight-Mode-Injection) | | |
+#### **ArduPilot** (ArduPilot Development Team)
+| Exploit | Model/Firmware Version | Notes |
+|---------|------------------------|-------|
+| `hail_mary_attack.py` | All ArduPilot-based drones | Automated multi-vector attack |
+| `hail_mary_attack.py` | All ArduPilot-based drones | Automated multi-vector attack |
+| `mavlink_inject.py` | All ArduPilot-based drones | Generic MAVLink |
+| `waypoint_override.py` | All ArduPilot-based drones | Generic MAVLink |
+| `geofence_bypass.py` | All ArduPilot-based drones | Generic MAVLink |
+| `parameter_manipulation.py` | All ArduPilot-based drones | Generic MAVLink |
+| `return_to_home_override.py` | All ArduPilot-based drones | Generic MAVLink |
+| `gimbal_takeover.py` | All ArduPilot-based drones | Generic MAVLink |
+| `flight_mode_injection.py` | All ArduPilot-based drones | Generic MAVLink |
+| `gcs_spoofing.py` | All ArduPilot-based drones | Generic MAVLink |
+| `gps_spoofing.py` | All ArduPilot-based drones | Generic MAVLink |
+| `battery_spoofing.py` | All ArduPilot-based drones | Generic MAVLink |
+| `attitude_spoofing.py` | All ArduPilot-based drones | Generic MAVLink |
+| `sensor_data_injection.py` | All ArduPilot-based drones | Generic MAVLink |
+| `vfr_hud_spoofing.py` | All ArduPilot-based drones | Generic MAVLink |
+| `system_status_spoofing.py` | All ArduPilot-based drones | Generic MAVLink |
+| `satellite_spoofing.py` | All ArduPilot-based drones | Generic MAVLink |
+| `emergency_status_spoofing.py` | All ArduPilot-based drones | Generic MAVLink |
+| `critical_error_spoofing.py` | All ArduPilot-based drones | Generic MAVLink |
+| `communication_flooding.py` | All ArduPilot-based drones | Generic MAVLink |
+| `geofence_attack.py` | All ArduPilot-based drones | Generic MAVLink |
+| `flight_termination.py` | All ArduPilot-based drones | Generic MAVLink |
+| `gps_offset_glitching.py` | All ArduPilot-based drones | Generic MAVLink |
+| `denial_of_takeoff.py` | All ArduPilot-based drones | Generic MAVLink |
+| `flight_log_extraction.py` | All ArduPilot-based drones | Generic MAVLink |
+| `mission_extraction.py` | All ArduPilot-based drones | Generic MAVLink |
+| `parameter_extraction.py` | All ArduPilot-based drones | Generic MAVLink |
+| `packet_sniffing.py` | All ArduPilot-based drones | Generic MAVLink |
+| `protocol_fingerprinting.py` | All ArduPilot-based drones | Generic MAVLink |
+| `mavlink_mitm.py` | All ArduPilot-based drones | Generic MAVLink |
+| `command_replay.py` | All ArduPilot-based drones | Generic MAVLink |
+| `telemetry_replay.py` | All ArduPilot-based drones | Generic MAVLink |
+| `firmware_extraction.py` | All ArduPilot-based drones | Generic MAVLink |
+| `drone_discovery.py` | All ArduPilot-based drones | Generic MAVLink |
+| `gcs_discovery.py` | All ArduPilot-based drones | Generic MAVLink |
+| `gps_telemetry_tracking.py` | All ArduPilot-based drones | Generic MAVLink |
 
-## Documentation & Walkthrough
+#### **DJI** (DJI Technology)
+| Exploit | Model | CVE | Notes |
+|---------|-------|-----|-------|
+| `wifi_crack.py` | DJI Spark, Mavic Air, DJI Mini series | CVE-2025-10250 | WEP encryption |
+| `wifi_crack.py` | Mavic 3 Series, Matrice 300, Mini 3 Pro | CVE-2023-6951 | WPA2 PSK weakness |
+| `wifi_deauth.py` | All WiFi-enabled DJI drones | - | Generic WiFi attack |
+| `wifi_client_data_leak.py` | All WiFi-enabled DJI drones | - | Generic WiFi attack |
+| `camera_feed_eavesdropping.py` | DJI drones with RTSP streaming | - | Camera streaming |
+| `drone_discovery.py` | All DJI drones | - | Network discovery |
 
-Each of the attack scenarios have detailed documentation which outlines what the attack scenario is, as well as a **Spoiler** step-by-step walkthrough for users to follow in order to execute the attack. These walkthroughs are hidden behind a button, which when clicked, will reveal the instructions.
+#### **Holy Stone** (Holy Stone)
+| Exploit | Model | CVE | Notes |
+|---------|-------|-----|-------|
+| `holy_stone_ble_rce_cve_2024_52876.py` | Holy Stone drones with HSRID01 Remote ID Module | CVE-2024-52876 | BLE RCE, Drone Go2 app < v1.1.8 |
 
-<p align="center">
-  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/Walkthrough.png?raw=true" alt="Damn Vulnerable Drone Walkthrough"/>
-</p>
+#### **ExpressLRS Protocol** (Open Source FPV Community)
+| Exploit | Model | Notes |
+|---------|-------|-------|
+| `expresslrs_uid_leakage.py` | FPV drones using ExpressLRS protocol | All ExpressLRS-compatible FPV drones |
 
+#### **Parrot** (Parrot Drones SAS)
+| Exploit | Model | Notes |
+|---------|-------|-------|
+| `wifi_deauth.py` | Parrot Bebop 2, Anafi | WiFi-enabled models |
+| `wifi_client_data_leak.py` | Parrot Bebop 2, Anafi | WiFi-enabled models |
+| `camera_feed_eavesdropping.py` | Parrot Bebop 2, Anafi | RTSP streaming |
 
-# Screenshots
+#### **Generic/Protocol-Based** (Multiple Manufacturers)
+| Exploit | Protocol/Technology | Applicable Models |
+|---------|-------------------|-------------------|
+| `web_ui_brute_force.py` | Companion Computer Web UI | Any drone with companion computer web interface |
+| `companion_computer_exploit.py` | Companion Computer | Any drone with companion computer (Raspberry Pi, etc.) |
+| `companion_computer_discovery.py` | Companion Computer | Any drone with companion computer |
+| `ros_topic_flooding.py` | ROS (Robot Operating System) | ROS-based drones with companion computers |
+| `camera_feed_eavesdropping.py` | RTSP Protocol | Any drone with RTSP camera streaming |
+| `ftp_eavesdropping.py` | FTP Protocol | Any drone with FTP services |
+| `arp_spoofing.py` | Network Protocol | Any network-connected drone |
+| `dns_spoofing.py` | Network Protocol | Any network-connected drone |
+| `firmware_analysis.py` | Firmware Analysis | All drone firmware types |
+| `wireless_network_exploit.py` | Wireless Networks | Any drone capable of carrying payload (2026 research) |
+| `data_interception.py` | Wireless Interception | Any drone with wireless interception capability |
+| `physical_payload_delivery.py` | Physical Delivery | Any drone with payload delivery capability |
+| `multi_vector_attack.py` | Multi-Vector | Any drone platform (coordinated attacks) |
 
-<p align="center">
-  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/a43dbcd7-10b0-4f7a-b920-5925bac59642.gif?raw=true" alt="Damn Vulnerable Drone Demo"/>
-</p>
+### Summary by Manufacturer
 
-<p>
-  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/Damn-Vulnerable-Drone-Interface.png?raw=true" alt="Damn Vulnerable Drone Interface"/>
-</p>
+| Manufacturer | Exploits Count | Primary Attack Vectors |
+|--------------|----------------|----------------------|
+| **PX4-Autopilot** | 35+ | Buffer overflows, RCE, Geofence bypass, MAVLink injection |
+| **ArduPilot** | 30+ | MAVLink protocol exploits, GPS spoofing, Parameter manipulation |
+| **DJI** | 6 | WiFi protocol exploitation (WEP/WPA2), Network attacks |
+| **Holy Stone** | 1 | BLE RCE (CVE-2024-52876) |
+| **ExpressLRS** | 1 | UID leakage, Binding phrase exploitation |
+| **Parrot** | 3 | WiFi attacks, Camera feed interception |
+| **Generic/Protocol** | 10+ | Protocol-based attacks (ROS, RTSP, FTP, Network) |
 
-<p align="center">
-  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/Damn-Vulnerable-Drone.png?raw=true" alt="Damn Vulnerable Drone"/>
-</p>
+### Coverage Statistics
 
-<p align="center">
-  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/Ground-Control-Station.png?raw=true" alt="Ground Control Station"/>
-</p>
+- **Total Manufacturers Covered**: 6+ (PX4, ArduPilot, DJI, Holy Stone, ExpressLRS, Parrot)
+- **Total Exploit Scripts**: 73+
+- **Protocol-Based Coverage**: MAVLink, WiFi, BLE, ExpressLRS, ROS, RTSP, FTP
+- **CVE-Specific Exploits**: 10+ (targeting specific firmware versions)
+- **Automated Attack Systems**: Hail Mary Attack (multi-vector automated exploitation)
 
-<p align="center">
-  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/Drone-Hacker-Van.png?raw=true" alt="Drone Hacker Van"/>
-</p>
+---
 
-<p align="center">
-  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/Drone-Hacking-Station.png?raw=true" alt="Drone Hacking Station"/>
-</p>
+## 🚀 Quick Start
 
-<p align="center">
-  <img src="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/blob/master/simulator/mgmt/static/images/kali-drone-hacker.png?raw=true" alt="Damn Vulnerable Drone Desktop Background"/>
-</p>
+### Prerequisites
 
-# Mentions
+- **Docker** and **Docker Compose** installed
+- **Kali Linux** (recommended) or compatible Linux distribution
+- **System Requirements**:
+  - **Lite Mode**: 4-8 GB RAM, 2 CPU cores, 100 GB disk
+  - **Full Mode**: 8-16 GB RAM, 2-4 CPU cores, 100 GB disk, GPU with 2GB+ VRAM
 
-- [OWASP Top 10 Drone Security Risks](https://github.com/OWASP/CheatSheetSeries/issues/1412)
-- [Kitploit](https://kitploit.com/2024/09/damn-vulnerable-drone-intentionally.html/)
-- [David Bombal - Drone Hacking Demo](https://youtu.be/c1ZCHCwqWls?t=5705)
-- [Red Team Village at DEFCON 32](https://becomingahacker.org/def-con-32-red-team-village-activities-e4e20895df37)
-- [Aerospace Hacking Village DEFCON 32](https://www.aerospacevillage.org/defcon-32-workshop-schedule)
-- [Cyberattacks and defenses for Autonomous Navigation Systems: A systematic literature review](https://www.researchgate.net/publication/391637526_Cyberattacks_and_defenses_for_Autonomous_Navigation_Systems_A_systematic_literature_review)
-- [Drone Software Meetup Group](https://www.meetup.com/drone-software-meetup-group/events/300478718/)
-- [National Cyber Security Service's](https://www.facebook.com/ncybersec/posts/-damn-vulnerable-drone-the-damn-vulnerable-drone-is-an-intentionally-vulnerable-/1040824904739615/)
-- [OWASP Tunisia Chapter, Drone Security - Helmi Rais](https://www.youtube.com/watch?v=30gvG5EByHw)
-- [Red Wrench - How to hack drones part 1](https://youtu.be/KYHbFEJl0AU?si=3tKzdYCN47W_Gkoc)
+### 1-Minute Setup
 
-# Community Support
+```bash
+# Navigate to simulator directory
+cd "Drone Research/Damn-Vulnerable-Drone"
 
-The Damn Vulnerable Drone platform thrives on the active participation and collaboration of its user community. This community is a collective of like-minded individuals ranging from cybersecurity enthusiasts to professional ethical hackers, all focused on sharing knowledge and advancing skills in drone security. Whether you're encountering technical issues, seeking advice on tackling scenarios, or looking to discuss the latest trends in drone vulnerabilities, the Damn Vulnerable Drone community is a valuable resource.
+# Start in Lite Mode (no GPU required)
+sudo ./start.sh --mode lite --no-wifi
 
-The community [Slack Channel](https://join.slack.com/t/damnvulnerabledrone/shared_invite/zt-2g9tp202t-x5csb~uTyvHurgptki_XwQ) is available for users to connect, share experiences, and provide mutual support. Users are encouraged to participate actively, ask questions, and offer help to others. Experienced members of the community often mentor newcomers, fostering a culture of continuous learning and improvement. Remember, every question you ask and every answer you provide helps the entire community grow stronger.
+# Access the interfaces
+# Management Console: http://localhost:8000
+# Companion Computer: http://localhost:3000
+```
 
-# Feedback & Contributions
+---
 
-The platform maintains a [GitHub open source repository](https://github.com/nicholasaleks/Damn-Vulnerable-Drone) where users can submit their contributions. These contributions are reviewed by the maintainers and, if aligned with the project's goals, are integrated into the platform. By contributing, you help ensure that the DVD remains a cutting-edge tool for learning and practicing drone hacking techniques in a safe and ethical manner.
+## 📦 Installation
 
-If you have developed a new attack scenario, discovered a way to improve the simulation, or created educational content that could benefit others, create a [GitHub Pull Request](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/pulls). Contributions can take various forms, from code patches and feature suggestions to writing documentation and creating tutorial videos.
+### Step 1: Install Docker
 
-Feedback is the cornerstone of growth for the Damn Vulnerable Drone platform. Users are encouraged to provide their insights by creating a [GitHub Issue](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/issues). Do your best to including any challenges faced and suggestions for enhancements. This feedback is invaluable for the ongoing development and refinement of the platform.
+**On Kali Linux:**
+```bash
+# Add Docker repository
+printf '%s\n' "deb https://download.docker.com/linux/debian bullseye stable" | sudo tee /etc/apt/sources.list.d/docker-ce.list
 
-# Roadmap
-- Support PX4 Firmware
-- Support Kali docker container
-- Support Fixed-Wing Drone models
+# Import GPG key
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/docker-ce-archive-keyring.gpg
 
-# Credits
+# Update and install
+sudo apt update -y
+sudo apt install docker-ce docker-ce-cli containerd.io -y
 
-Thanks to all the amazing [community contributors for sending PRs](https://github.com/nicholasaleks/Damn-Vulnerable-Drone/graphs/contributors) and keeping this project updated. :heart:
+# Start Docker service
+sudo systemctl enable docker --now
 
-If you have an idea or some kind of improvement, you are welcome to contribute and participate in the project, feel free to send your PR.
+# Add user to docker group
+sudo usermod -aG docker $USER
+# Log out and back in for group changes to take effect
+```
 
-<p align="center">
-  <a href="https://github.com/nicholasaleks/Damn-Vulnerable-Drone/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=nicholasaleks/Damn-Vulnerable-Drone" />
-  </a>
-</p>
+### Step 2: Clone Repository
 
-# Disclaimer
+```bash
+git clone https://github.com/yourusername/damn-vulnerable-drone.git
+cd damn-vulnerable-drone
+```
 
-The Damn Vulnerable Drone (DVD) platform is provided solely for educational and research purposes. Users are expected to adhere to ethical hacking principles, respecting privacy and laws, and must not use skills or knowledge acquired from Damn Vulnerable Drone for malicious activities. The creators and maintainers of Damn Vulnerable Drone are not liable for any misuse of the platform. By using Damn Vulnerable Drone, you agree to use it responsibly and within legal boundaries. Damn Vulnerable Drone is highly insecure, and as such, should not be deployed on drone hardware or internet facing servers. It is intentionally flawed and vulnerable, as such, it comes with no warranties.
+### Step 3: Choose Your Mode
 
-# License
+#### Lite Mode (Recommended for First Time)
+```bash
+sudo ./start.sh --mode lite --no-wifi
+```
 
-It is distributed under the MIT License. See LICENSE for more information.
+#### Full Mode (3D Environment)
+```bash
+sudo ./start.sh --mode full --no-wifi
+```
 
+#### With WiFi Simulation
+```bash
+# WEP encryption
+sudo ./start.sh --mode lite --wifi wep
+
+# WPA2 encryption
+sudo ./start.sh --mode lite --wifi wpa2
+```
+
+For detailed installation instructions, see [SETUP_GUIDE.md](Damn-Vulnerable-Drone/SETUP_GUIDE.md).
+
+---
+
+## 📖 Usage Guide
+
+### Accessing the Web Interfaces
+
+1. **Management Console** (`http://localhost:8000`)
+   - View attack scenarios
+   - Execute exploits
+   - Monitor system status
+   - Track progress
+
+2. **Companion Computer** (`http://localhost:3000`)
+   - Web-based drone interface
+   - Mission planning
+   - Telemetry monitoring
+
+### Running Exploits via Web Interface
+
+1. Navigate to `http://localhost:8000`
+2. Click on **"Attacks"** in the navigation menu
+3. Browse available attack scenarios by category
+4. Select a scenario and click **"Execute"**
+5. Monitor execution status and results
+
+### Running Exploits via Command Line
+
+```bash
+# Example: Buffer overflow attack
+cd Damn-Vulnerable-Drone
+python3 exploits/injection/buffer_overflow_cve_2024_40427.py udp:127.0.0.1:14550
+
+# Example: GPS spoofing
+python3 exploits/tampering/gps_spoofing.py udp:127.0.0.1:14550 37.7749 -122.4194 100
+
+# Example: Flight log extraction
+python3 exploits/exfiltration/flight_log_extraction.py udp:127.0.0.1:14550
+```
+
+### Using Attack Chains
+
+```bash
+# Execute a predefined attack chain
+python3 exploits/chains/chain_executor.py chain_id
+
+# View available chains
+curl http://localhost:8000/api/exploits/chains
+```
+
+For comprehensive usage instructions, see [USAGE_GUIDE.md](Damn-Vulnerable-Drone/USAGE_GUIDE.md).
+
+---
+
+## 🏗️ System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Docker Network (10.13.0.0/24)            │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌──────────────────┐  ┌──────────────────┐               │
+│  │ Flight Controller│  │ Companion Computer│               │
+│  │  (ArduPilot SITL)│  │   (Flask Web UI) │               │
+│  │   10.13.0.2      │  │    10.13.0.3      │               │
+│  │   Port: 14550    │  │   Port: 3000      │               │
+│  └──────────────────┘  └──────────────────┘               │
+│                                                              │
+│  ┌──────────────────┐  ┌──────────────────┐               │
+│  │ Ground Control   │  │   Simulator      │               │
+│  │   Station        │  │  (Management)    │               │
+│  │  (QGroundControl)│  │   (Flask API)    │               │
+│  │   10.13.0.4      │  │    10.13.0.5      │               │
+│  │                  │  │   Port: 8000     │               │
+│  └──────────────────┘  └──────────────────┘               │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Components
+
+- **Flight Controller**: ArduPilot SITL simulation
+- **Companion Computer**: Web interface and services
+- **Ground Control Station**: QGroundControl integration
+- **Simulator**: Management console and exploit execution
+
+---
+
+## 📚 Documentation
+
+### Core Documentation
+
+- **[SETUP_GUIDE.md](Damn-Vulnerable-Drone/SETUP_GUIDE.md)** - Detailed installation and configuration
+- **[USAGE_GUIDE.md](Damn-Vulnerable-Drone/USAGE_GUIDE.md)** - Comprehensive usage instructions
+- **[API_DOCUMENTATION.md](Damn-Vulnerable-Drone/API_DOCUMENTATION.md)** - REST API reference
+- **[VULNERABILITIES_AND_EXPLOITS.md](Damn-Vulnerable-Drone/VULNERABILITIES_AND_EXPLOITS.md)** - Complete vulnerability analysis
+- **[HARDWARE_REQUIREMENTS.md](Damn-Vulnerable-Drone/HARDWARE_REQUIREMENTS.md)** - Hardware setup guide
+
+### Research Documentation
+
+- **[RESEARCH.md](Damn-Vulnerable-Drone/RESEARCH.md)** - Comprehensive research document (14 sections)
+- **[REPOSITORIES.md](Damn-Vulnerable-Drone/REPOSITORIES.md)** - GitHub repository catalog
+- **[SUMMARY.md](Damn-Vulnerable-Drone/SUMMARY.md)** - Quick reference guide
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and updates
+
+---
+
+## 📊 Statistics
+
+### Project Metrics
+
+- **Exploit Scripts**: 73+
+- **Attack Categories**: 11
+- **Real-World CVEs**: 10+
+- **Attack Scenarios**: 40+
+- **Documented Vulnerabilities**: 46
+- **Lines of Code**: 10,000+
+- **Docker Containers**: 4
+- **Web Interfaces**: 2
+
+### CVE Coverage
+
+| CVE | CVSS Score | Category | Status |
+|-----|------------|----------|--------|
+| CVE-2024-40427 | 7.9 | Buffer Overflow | ✅ Implemented |
+| CVE-2024-38952 | 7.5 | Logger Overflow | ✅ Implemented |
+| CVE-2024-38951 | 6.5 | Buffer Overflow | ✅ Implemented |
+| CVE-2024-29460 | 6.6 | Flight Path Manipulation | ✅ Implemented |
+| CVE-2024-30800 | - | Geofence Bypass | ✅ Implemented |
+| CVE-2024-30799 | 4.4 | RCE | ✅ Implemented |
+| CVE-2025-9020 | 4.5 | Use-After-Free | ✅ Implemented |
+| CVE-2025-5640 | High | Trajectory Overflow | ✅ Implemented |
+| CVE-2024-52876 | 7.5 | BLE RCE | ✅ Implemented |
+| CVE-2024-24254 | 4.2 | Race Condition | ✅ Implemented |
+| CVE-2024-24255 | 4.2 | Race Condition | ✅ Implemented |
+
+---
+
+## ⚠️ Legal Notice
+
+**This project is for educational and authorized security research purposes only.**
+
+### Important Legal Considerations
+
+- ⚠️ Unauthorized access to or control of drones is **illegal** in most jurisdictions
+- ✅ Only test on drones you own or have explicit written permission to test
+- ✅ Follow responsible disclosure practices
+- ✅ Comply with local aviation regulations
+- ✅ Use in controlled, isolated environments
+- ✅ Do not use these techniques on real-world systems without authorization
+
+### Responsible Use
+
+This platform is designed to:
+- Educate security professionals
+- Train security teams
+- Conduct authorized security research
+- Develop defensive strategies
+
+**Misuse of this software is strictly prohibited and may result in legal consequences.**
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these guidelines:
+
+1. **Fork the repository**
+2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
+3. **Follow code style** (PEP 8 for Python)
+4. **Update documentation** (README, CHANGELOG, etc.)
+5. **Test your changes** thoroughly
+6. **Commit with clear messages** (`git commit -m 'Add amazing feature'`)
+7. **Push to your branch** (`git push origin feature/amazing-feature`)
+8. **Open a Pull Request**
+
+### Contribution Areas
+
+- New exploit scripts
+- Documentation improvements
+- Bug fixes
+- Feature enhancements
+- Test cases
+- Security research
+
+---
+
+## 🔗 Resources
+
+### Official Links
+
+- **Original Project**: [Damn Vulnerable Drone](https://github.com/nicholasaleks/Damn-Vulnerable-Drone)
+- **OWASP Top 10 Drone Security Risks**: [OWASP](https://owasp.org/www-project-top-10-drone-security-risks/)
+- **MAVLink Protocol**: [MAVLink.io](https://mavlink.io/)
+- **ArduPilot**: [ArduPilot.org](https://ardupilot.org/)
+
+### Learning Resources
+
+- [Drone Security Research Papers](Damn-Vulnerable-Drone/RESEARCH.md)
+- [Vulnerability Database](Damn-Vulnerable-Drone/VULNERABILITIES_AND_EXPLOITS.md)
+- [API Documentation](Damn-Vulnerable-Drone/API_DOCUMENTATION.md)
+
+---
+
+## 📝 Version History
+
+**Current Version**: 1.1.0
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history and updates.
+
+### Recent Updates
+
+- ✅ 72+ exploit scripts implemented
+- ✅ 10+ real-world CVE exploits
+- ✅ Attack chain orchestration
+- ✅ Web-based management console
+- ✅ Comprehensive documentation
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](Damn-Vulnerable-Drone/LICENSE) file for details.
+
+---
+
+## 🌟 Star History
+
+If you find this project useful, please consider giving it a ⭐ on GitHub!
+
+---
+
+**Last Updated**: January 22, 2026  
+**Status**: Active Development & Research  
+**Maintainer**: Security Research Team
+
+---
+
+<div align="center">
+
+**Made with ❤️ for the security research community**
+
+[⬆ Back to Top](#-damn-vulnerable-drone---professional-security-research-platform)
+
+</div>
+# Drone-hijack

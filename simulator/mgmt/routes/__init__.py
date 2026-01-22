@@ -12,6 +12,9 @@ from . import pages_attacks  # noqa: E402,F401
 from . import pages_guide    # noqa: E402,F401
 from . import pages_learning # noqa: E402,F401
 from . import errors         # noqa: E402,F401
+from . import progress       # noqa: E402,F401
+from . import export         # noqa: E402,F401
+from . import exploits       # noqa: E402,F401
 
 # Expose as "main" for app.register_blueprint(main)
 main = bp

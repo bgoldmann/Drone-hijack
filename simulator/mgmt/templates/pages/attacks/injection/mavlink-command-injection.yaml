@@ -1,5 +1,15 @@
 title: MAVLink Injection Attack
+order: 1
 description: Manipulating MAVLink messages to alter the behavior of a drone
+difficulty: intermediate
+estimated_time: 30
+prerequisites: []
+tools_required:
+  - pymavlink
+  - MAVProxy
+  - Python 3
+cve_references:
+  - CVE-2020-10282
 breadcrumb:
   - text: Attack Scenarios
     link: /attacks

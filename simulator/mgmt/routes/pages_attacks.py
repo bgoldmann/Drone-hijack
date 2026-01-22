@@ -46,6 +46,11 @@ def load_yaml_files(dir_path: os.PathLike):
             "title": title,
             "link": link,
             "_source_file": str(yml),
+            "difficulty": data.get("difficulty", "intermediate"),  # beginner, intermediate, advanced
+            "estimated_time": data.get("estimated_time", None),  # in minutes
+            "prerequisites": data.get("prerequisites", []),  # list of scenario IDs
+            "tools_required": data.get("tools_required", []),  # list of required tools
+            "cve_references": data.get("cve_references", []),  # list of CVE IDs
         })
 
     items.sort(key=lambda x: (x["order"], x["title"].lower()))
@@ -95,3 +100,64 @@ def redirect_attack_scenario(tactic: str, filename: str):
     wiki_slug = SLUG_OVERRIDES.get(title, slugify(title))
     wiki_url = f"https://github.com/nicholasaleks/Damn-Vulnerable-Drone/wiki/{wiki_slug}"
     return redirect(wiki_url, code=302)
+
+@bp.route("/attacks/dashboard")
+def dashboard():
+    return render_template(
+        "pages/dashboard.html",
+        section="attacks",
+        sub_section="dashboard",
+        current_page="dashboard",
+        LITE=current_app.config.get("LITE", False),
+    )
+
+@bp.route("/attacks/compare")
+def compare():
+    # Load all scenarios for comparison
+    base_dir = _attacks_base_dir()
+    all_scenarios = []
+    
+    for category_name, category_dir in [
+        ("Reconnaissance", base_dir / "recon"),
+        ("Protocol Tampering", base_dir / "tampering"),
+        ("Denial of Service", base_dir / "dos"),
+        ("Injection", base_dir / "injection"),
+        ("Exfiltration", base_dir / "exfiltration"),
+        ("Firmware Attacks", base_dir / "firmware"),
+    ]:
+        scenarios = load_yaml_files(category_dir)
+        for scenario in scenarios:
+            # Load full YAML data
+            yaml_path = base_dir / category_dir.name / f"{scenario['_source_file'].split('/')[-1].replace('.yaml', '')}.yaml"
+            if yaml_path.exists():
+                with yaml_path.open("r", encoding="utf-8") as f:
+                    yaml_data = yaml.safe_load(f) or {}
+                    scenario.update({
+                        "category": category_name,
+                        "difficulty": yaml_data.get("difficulty", "intermediate"),
+                        "estimated_time": yaml_data.get("estimated_time"),
+                        "tools_required": yaml_data.get("tools_required", []),
+                        "cve_references": yaml_data.get("cve_references", []),
+                        "description": yaml_data.get("description", ""),
+                    })
+                    all_scenarios.append(scenario)
+    
+    return render_template(
+        "pages/compare.html",
+        section="attacks",
+        sub_section="compare",
+        current_page="compare",
+        scenarios=all_scenarios,
+        LITE=current_app.config.get("LITE", False),
+    )
+
+@bp.route("/attacks/chain-builder")
+def chain_builder():
+    """Attack chain builder page"""
+    return render_template(
+        "pages/chain-builder.html",
+        section="attacks",
+        sub_section="chain-builder",
+        current_page="chain-builder",
+        LITE=current_app.config.get("LITE", False),
+    )

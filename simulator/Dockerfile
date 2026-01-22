@@ -39,9 +39,9 @@ RUN wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pk
 # Create Symbolic link for python2.7
 RUN ln -s /usr/bin/python2.7 /usr/bin/python
 
-# Install ROS
-RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add -
-RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/ros-latest.list'
+# Install ROS (modern signed-by keyring; apt-key deprecated)
+RUN curl -fsSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | gpg --dearmor -o /usr/share/keyrings/ros-archive-keyring.gpg
+RUN echo "deb [signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros-latest.list
 RUN apt update -y && apt install -y ros-noetic-ros-base ros-noetic-gazebo-ros-pkgs ros-noetic-image-transport
 
 # Install ArduPilot Gazebo Plugin
@@ -89,15 +89,16 @@ RUN npm install v8flags grunt-cli
 RUN npm install
 RUN /bin/bash -c "source /usr/share/gazebo/setup.sh && npm run deploy -- -m local"
 
-# Install Damn Vulnerable Drone Sim Mgmt Web App
+# Install Damn Vulnerable Drone Sim Mgmt Web App (pinned upgrades)
 RUN pip3 install --no-cache-dir \
-    Flask \
-    flask-cors \
-    Flask-SQLAlchemy \
-    requests \
-    flask-sock \
-    "python-socketio[client]==5.11.2" \
-    docker
+    "Flask>=3.1.2" \
+    "flask-cors>=4.0.0" \
+    "Flask-SQLAlchemy>=3.1.1" \
+    "requests>=2.31.0" \
+    "flask-sock>=0.7.0" \
+    "python-socketio[client]>=5.14.0" \
+    "docker>=7.1.0" \
+    "pyyaml>=6.0"
 
 COPY simulator/mgmt /Simulator/mgmt
 

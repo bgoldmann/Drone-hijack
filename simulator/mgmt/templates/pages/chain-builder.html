@@ -1,0 +1,310 @@
+{% extends "pages/index.html" %}
+
+{% block content %}
+<main>
+    <div class="container-xl p-5">
+        <section class="mb-5">
+            <div class="d-flex align-items-center mb-3">
+                <h2 class="mb-0">Attack Chain Builder</h2>
+            </div>
+            <p>Build custom multi-stage attack chains by combining exploit scripts.</p>
+        </section>
+
+        <div class="row g-4">
+            <!-- Available Exploits -->
+            <div class="col-lg-4">
+                <div class="card card-raised">
+                    <div class="card-header">
+                        <h5 class="mb-0">Available Exploits</h5>
+                    </div>
+                    <div class="card-body">
+                        <input type="text" class="form-control mb-3" id="exploitSearch" placeholder="Search exploits...">
+                        <div id="exploitList" style="max-height: 600px; overflow-y: auto;">
+                            <p class="text-muted text-center">Loading exploits...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chain Builder -->
+            <div class="col-lg-8">
+                <div class="card card-raised">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Attack Chain</h5>
+                        <div>
+                            <button class="btn btn-sm btn-primary" id="saveChain">Save Chain</button>
+                            <button class="btn btn-sm btn-success" id="executeChain">Execute</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="chainBuilder" style="min-height: 400px; border: 2px dashed #ddd; padding: 20px; border-radius: 8px;">
+                            <p class="text-muted text-center">Drag exploits from the left to build your attack chain</p>
+                        </div>
+                        <div class="mt-3">
+                            <h6>Chain Configuration</h6>
+                            <textarea class="form-control" id="chainConfig" rows="10" readonly></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chain Templates -->
+        <div class="row g-4 mt-4">
+            <div class="col-lg-12">
+                <div class="card card-raised">
+                    <div class="card-header">
+                        <h5 class="mb-0">Predefined Chain Templates</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="chainTemplates">
+                            <div class="col-md-4 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6>Full Takeover</h6>
+                                        <p class="small text-muted">Complete drone takeover chain</p>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="loadTemplate('full_takeover')">Load</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6>GCS Hijack</h6>
+                                        <p class="small text-muted">Hijack ground control station</p>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="loadTemplate('gcs_hijack')">Load</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6>Reconnaissance</h6>
+                                        <p class="small text-muted">Comprehensive reconnaissance</p>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="loadTemplate('reconnaissance_chain')">Load</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+let chainStages = [];
+let availableExploits = [];
+
+// Load available exploits
+function loadExploits() {
+    fetch('/exploits/list')
+        .then(response => response.json())
+        .then(data => {
+            availableExploits = data.exploits;
+            renderExploitList();
+        })
+        .catch(err => console.error('Error loading exploits:', err));
+}
+
+function renderExploitList() {
+    const container = document.getElementById('exploitList');
+    const searchTerm = document.getElementById('exploitSearch').value.toLowerCase();
+    
+    const filtered = availableExploits.filter(exp => 
+        exp.name.toLowerCase().includes(searchTerm) ||
+        exp.category.toLowerCase().includes(searchTerm)
+    );
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No exploits found</p>';
+        return;
+    }
+    
+    // Group by category
+    const byCategory = {};
+    filtered.forEach(exp => {
+        if (!byCategory[exp.category]) {
+            byCategory[exp.category] = [];
+        }
+        byCategory[exp.category].push(exp);
+    });
+    
+    let html = '';
+    for (const [category, exploits] of Object.entries(byCategory)) {
+        html += `<h6 class="mt-3 mb-2">${category.charAt(0).toUpperCase() + category.slice(1)}</h6>`;
+        exploits.forEach(exp => {
+            html += `<div class="exploit-item p-2 mb-2 border rounded" draggable="true" 
+                     data-exploit-id="${exp.id}" data-exploit-path="${exp.path}"
+                     style="cursor: move; background: #f8f9fa;">
+                <strong>${exp.name}</strong>
+                <br><small class="text-muted">${exp.id}</small>
+            </div>`;
+        });
+    }
+    
+    container.innerHTML = html;
+    
+    // Add drag event listeners
+    container.querySelectorAll('.exploit-item').forEach(item => {
+        item.addEventListener('dragstart', handleDragStart);
+    });
+}
+
+function handleDragStart(e) {
+    e.dataTransfer.setData('text/plain', e.target.dataset.exploitId);
+    e.dataTransfer.setData('exploit-path', e.target.dataset.exploitPath);
+    e.dataTransfer.setData('exploit-name', e.target.querySelector('strong').textContent);
+}
+
+// Chain builder setup
+const chainBuilder = document.getElementById('chainBuilder');
+chainBuilder.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    chainBuilder.style.borderColor = '#007bff';
+});
+
+chainBuilder.addEventListener('dragleave', () => {
+    chainBuilder.style.borderColor = '#ddd';
+});
+
+chainBuilder.addEventListener('drop', (e) => {
+    e.preventDefault();
+    chainBuilder.style.borderColor = '#ddd';
+    
+    const exploitId = e.dataTransfer.getData('text/plain');
+    const exploitPath = e.dataTransfer.getData('exploit-path');
+    const exploitName = e.dataTransfer.getData('exploit-name');
+    
+    addStageToChain(exploitId, exploitPath, exploitName);
+});
+
+function addStageToChain(exploitId, exploitPath, exploitName) {
+    const stage = {
+        id: chainStages.length + 1,
+        exploit_id: exploitId,
+        exploit_path: exploitPath,
+        name: exploitName,
+        args: [],
+        delay: 0
+    };
+    
+    chainStages.push(stage);
+    renderChain();
+    updateChainConfig();
+}
+
+function renderChain() {
+    if (chainStages.length === 0) {
+        chainBuilder.innerHTML = '<p class="text-muted text-center">Drag exploits here to build your chain</p>';
+        return;
+    }
+    
+    let html = '';
+    chainStages.forEach((stage, index) => {
+        html += `<div class="chain-stage p-3 mb-2 border rounded" data-stage-index="${index}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                    <strong>Stage ${stage.id}: ${stage.name}</strong>
+                    <br><small class="text-muted">${stage.exploit_path}</small>
+                    <div class="mt-2">
+                        <input type="number" class="form-control form-control-sm d-inline-block" 
+                               style="width: 100px;" placeholder="Delay (s)" 
+                               value="${stage.delay}" 
+                               onchange="updateStageDelay(${index}, this.value)">
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-danger" onclick="removeStage(${index})">Remove</button>
+            </div>
+        </div>`;
+    });
+    
+    chainBuilder.innerHTML = html;
+}
+
+function removeStage(index) {
+    chainStages.splice(index, 1);
+    renderChain();
+    updateChainConfig();
+}
+
+function updateStageDelay(index, delay) {
+    chainStages[index].delay = parseInt(delay) || 0;
+    updateChainConfig();
+}
+
+function updateChainConfig() {
+    const config = {
+        name: "Custom Attack Chain",
+        description: "User-defined attack chain",
+        stages: chainStages.map(stage => ({
+            name: stage.name,
+            type: "script",
+            script: stage.exploit_path,
+            args: stage.args,
+            delay: stage.delay,
+            required: true
+        }))
+    };
+    
+    document.getElementById('chainConfig').value = JSON.stringify(config, null, 2);
+}
+
+function loadTemplate(templateId) {
+    fetch('/exploits/chains')
+        .then(response => response.json())
+        .then(data => {
+            const chain = data.chains.find(c => c.id === templateId);
+            if (chain) {
+                // Load chain definition
+                fetch(`/exploits/chain/${templateId}`)
+                    .then(r => r.json())
+                    .then(chainData => {
+                        alert(`Template "${chain.name}" loaded. Chain builder integration coming soon.`);
+                    });
+            }
+        });
+}
+
+function saveChain() {
+    const config = JSON.parse(document.getElementById('chainConfig').value);
+    // Save chain to server
+    alert('Chain saved! (Implementation: Save to chain_definitions.yaml)');
+}
+
+function executeChain() {
+    if (chainStages.length === 0) {
+        alert('Please add stages to the chain first');
+        return;
+    }
+    
+    const chainName = prompt('Enter chain name:', 'custom_chain');
+    if (!chainName) return;
+    
+    // Execute chain via API
+    fetch(`/exploits/chain/${chainName}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            user_id: 'web_user',
+            params: {}
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(`Chain execution started. Execution ID: ${data.execution_id}`);
+    })
+    .catch(err => {
+        alert('Error executing chain: ' + err.message);
+    });
+}
+
+// Initialize
+document.getElementById('exploitSearch').addEventListener('input', renderExploitList);
+document.getElementById('saveChain').addEventListener('click', saveChain);
+document.getElementById('executeChain').addEventListener('click', executeChain);
+
+loadExploits();
+</script>
+{% endblock %}

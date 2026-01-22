@@ -1,5 +1,18 @@
 {
     "autoselect_device": "/dev/ttyUSB0",
     "autoselect_baud": 57600,
-    "autoselect_mavlink_version": 2.0
+    "autoselect_mavlink_version": 2.0,
+    "security_level": "low",
+    "wifi_encryption": "wep",
+    "mavlink_auth": false,
+    "attack_difficulty": "beginner",
+    "drone_model": "quadcopter",
+    "enable_logging": true,
+    "log_retention_days": 30,
+    "telemetry_rate": 10,
+    "enable_geofence": true,
+    "geofence_radius": 100,
+    "enable_rate_limiting": false,
+    "max_connection_attempts": 10,
+    "session_timeout": 3600
 }

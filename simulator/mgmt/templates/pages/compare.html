@@ -1,0 +1,289 @@
+{% extends "pages/index.html" %}
+
+{% block content %}
+<main>
+    <div class="container-xl p-5">
+        <section class="mb-5">
+            <div class="d-flex align-items-center mb-3">
+                <h2 class="mb-0">Attack Scenario Comparison</h2>
+                <button class="btn btn-text-dark btn-icon btn-lg text-muted ms-2" type="button"><i class="material-icons">link</i></button>
+            </div>
+            <p>Compare attack scenarios side-by-side to understand differences in difficulty, tools, and impact.</p>
+        </section>
+
+        <!-- Scenario Selection -->
+        <section class="mb-4">
+            <div class="card card-raised">
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label for="scenario1Select" class="form-label">Scenario 1</label>
+                            <select class="form-select" id="scenario1Select">
+                                <option value="">Select scenario...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 text-center d-flex align-items-end">
+                            <span class="text-muted">vs</span>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="scenario2Select" class="form-label">Scenario 2</label>
+                            <select class="form-select" id="scenario2Select">
+                                <option value="">Select scenario...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button class="btn btn-primary" onclick="compareScenarios()">Compare</button>
+                            <button class="btn btn-secondary" onclick="clearComparison()">Clear</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Comparison Results -->
+        <div id="comparisonResults" style="display: none;">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card card-raised">
+                        <div class="card-header">
+                            <h5 class="mb-0" id="scenario1Title">Scenario 1</h5>
+                        </div>
+                        <div class="card-body" id="scenario1Details">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card card-raised">
+                        <div class="card-header">
+                            <h5 class="mb-0" id="scenario2Title">Scenario 2</h5>
+                        </div>
+                        <div class="card-body" id="scenario2Details">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card card-raised">
+                        <div class="card-header">
+                            <h5 class="mb-0">Side-by-Side Comparison</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Attribute</th>
+                                            <th id="compScenario1">Scenario 1</th>
+                                            <th id="compScenario2">Scenario 2</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="comparisonTable">
+                                        <!-- Populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+let allScenarios = [];
+
+// Load all scenarios on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Populate dropdowns with scenarios from backend
+    populateScenarioDropdowns();
+});
+
+function populateScenarioDropdowns() {
+    // Use scenarios passed from backend
+    const scenarios = {{ scenarios | tojson }};
+    
+    const select1 = document.getElementById('scenario1Select');
+    const select2 = document.getElementById('scenario2Select');
+    
+    // Clear existing options (except first)
+    select1.innerHTML = '<option value="">Select scenario...</option>';
+    select2.innerHTML = '<option value="">Select scenario...</option>';
+    
+    scenarios.forEach(scenario => {
+        const scenarioId = scenario.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        const option1 = document.createElement('option');
+        option1.value = scenarioId;
+        option1.textContent = `${scenario.title} (${scenario.category})`;
+        option1.dataset.scenario = JSON.stringify(scenario);
+        select1.appendChild(option1);
+        
+        const option2 = document.createElement('option');
+        option2.value = scenarioId;
+        option2.textContent = `${scenario.title} (${scenario.category})`;
+        option2.dataset.scenario = JSON.stringify(scenario);
+        select2.appendChild(option2);
+    });
+    
+    // Store scenarios globally for lookup
+    window.allScenarios = scenarios;
+}
+
+function compareScenarios() {
+    const scenario1Id = document.getElementById('scenario1Select').value;
+    const scenario2Id = document.getElementById('scenario2Select').value;
+    
+    if (!scenario1Id || !scenario2Id) {
+        alert('Please select both scenarios to compare');
+        return;
+    }
+    
+    if (scenario1Id === scenario2Id) {
+        alert('Please select two different scenarios');
+        return;
+    }
+    
+    // Fetch scenario details (would need API endpoint)
+    // For now, using mock data
+    const scenario1 = getScenarioDetails(scenario1Id);
+    const scenario2 = getScenarioDetails(scenario2Id);
+    
+    displayComparison(scenario1, scenario2);
+}
+
+function getScenarioDetails(scenarioId) {
+    // Find scenario in dropdown options
+    const select1 = document.getElementById('scenario1Select');
+    const select2 = document.getElementById('scenario2Select');
+    
+    let scenarioData = null;
+    
+    // Try to find in select1
+    for (let option of select1.options) {
+        if (option.value === scenarioId && option.dataset.scenario) {
+            scenarioData = JSON.parse(option.dataset.scenario);
+            break;
+        }
+    }
+    
+    // Try to find in select2 if not found
+    if (!scenarioData) {
+        for (let option of select2.options) {
+            if (option.value === scenarioId && option.dataset.scenario) {
+                scenarioData = JSON.parse(option.dataset.scenario);
+                break;
+            }
+        }
+    }
+    
+    // Fallback to window.allScenarios
+    if (!scenarioData && window.allScenarios) {
+        scenarioData = window.allScenarios.find(s => {
+            const id = s.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            return id === scenarioId;
+        });
+    }
+    
+    return scenarioData || {
+        id: scenarioId,
+        title: 'Unknown Scenario',
+        difficulty: 'unknown',
+        estimated_time: null,
+        category: 'Unknown',
+        tools_required: [],
+        cve_references: [],
+        description: 'Scenario details not available'
+    };
+}
+
+function displayComparison(scenario1, scenario2) {
+    // Update scenario titles
+    document.getElementById('scenario1Title').textContent = scenario1.title;
+    document.getElementById('scenario2Title').textContent = scenario2.title;
+    document.getElementById('compScenario1').textContent = scenario1.title;
+    document.getElementById('compScenario2').textContent = scenario2.title;
+    
+    // Display scenario details
+    displayScenarioDetails('scenario1Details', scenario1);
+    displayScenarioDetails('scenario2Details', scenario2);
+    
+    // Build comparison table
+    const tableBody = document.getElementById('comparisonTable');
+    tableBody.innerHTML = '';
+    
+    const attributes = [
+        { key: 'difficulty', label: 'Difficulty' },
+        { key: 'estimated_time', label: 'Estimated Time (minutes)' },
+        { key: 'category', label: 'Category' },
+        { key: 'tools_required', label: 'Tools Required', isArray: true },
+        { key: 'cve_references', label: 'CVE References', isArray: true }
+    ];
+    
+    attributes.forEach(attr => {
+        const row = document.createElement('tr');
+        const labelCell = document.createElement('td');
+        labelCell.textContent = attr.label;
+        labelCell.style.fontWeight = 'bold';
+        
+        const value1Cell = document.createElement('td');
+        value1Cell.textContent = formatValue(scenario1[attr.key], attr.isArray);
+        if (scenario1[attr.key] !== scenario2[attr.key]) {
+            value1Cell.style.backgroundColor = '#fff3cd';
+        }
+        
+        const value2Cell = document.createElement('td');
+        value2Cell.textContent = formatValue(scenario2[attr.key], attr.isArray);
+        if (scenario1[attr.key] !== scenario2[attr.key]) {
+            value2Cell.style.backgroundColor = '#fff3cd';
+        }
+        
+        row.appendChild(labelCell);
+        row.appendChild(value1Cell);
+        row.appendChild(value2Cell);
+        tableBody.appendChild(row);
+    });
+    
+    document.getElementById('comparisonResults').style.display = 'block';
+}
+
+function displayScenarioDetails(elementId, scenario) {
+    const element = document.getElementById(elementId);
+    element.innerHTML = `
+        <p><strong>Category:</strong> ${scenario.category}</p>
+        <p><strong>Difficulty:</strong> <span class="badge bg-secondary">${scenario.difficulty}</span></p>
+        <p><strong>Estimated Time:</strong> ${scenario.estimated_time} minutes</p>
+        <p><strong>Tools Required:</strong></p>
+        <ul>
+            ${scenario.tools_required.map(tool => `<li>${tool}</li>`).join('')}
+        </ul>
+        ${scenario.cve_references.length > 0 ? `
+            <p><strong>CVE References:</strong></p>
+            <ul>
+                ${scenario.cve_references.map(cve => `<li><span class="badge bg-danger">${cve}</span></li>`).join('')}
+            </ul>
+        ` : ''}
+        <p><strong>Description:</strong> ${scenario.description}</p>
+    `;
+}
+
+function formatValue(value, isArray) {
+    if (isArray && Array.isArray(value)) {
+        return value.join(', ');
+    }
+    return value || 'N/A';
+}
+
+function clearComparison() {
+    document.getElementById('scenario1Select').value = '';
+    document.getElementById('scenario2Select').value = '';
+    document.getElementById('comparisonResults').style.display = 'none';
+}
+</script>
+{% endblock %}
