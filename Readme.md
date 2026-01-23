@@ -30,7 +30,7 @@
 
 ## 🎯 Overview
 
-**Damn Vulnerable Drone** is a professional-grade security research platform that simulates a vulnerable drone system with **72+ automated exploit scripts** covering **11 attack categories** and **10+ real-world CVEs**. Built on Docker, it provides a safe, isolated environment for learning drone security, penetration testing, and vulnerability research.
+**Damn Vulnerable Drone** is a professional-grade security research platform that simulates a vulnerable drone system with **89+ automated exploit scripts** covering **11 attack categories** and **10+ real-world CVEs**. Built on Docker, it provides a safe, isolated environment for learning drone security, penetration testing, and vulnerability research.
 
 ### Why This Project?
 
@@ -58,7 +58,7 @@
 - **RESTful API**: Programmatic access to all features
 
 ### 🛡️ Security Research
-- **72+ Exploit Scripts**: Automated Python scripts for all attack vectors
+- **89+ Exploit Scripts**: Automated Python scripts for all attack vectors
 - **10+ Real CVEs**: Proof-of-concept exploits for documented vulnerabilities
 - **Attack Chains**: Multi-stage attack orchestration
 - **Vulnerability Scanner**: Automated security assessment tools
@@ -97,7 +97,7 @@
 
 ### 📊 Exploit Statistics
 
-- **Total Exploit Scripts**: 73+
+- **Total Exploit Scripts**: 89+
 - **Attack Categories**: 11
 - **Real-World CVEs**: 10+
 - **Attack Scenarios**: 40+

@@ -5,6 +5,55 @@ All notable changes to the Damn Vulnerable Drone project will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **29 New Payloads** - Comprehensive expansion of exploit library:
+  - **Phase 1: High-Priority Software Payloads (11 payloads)**
+    - DJI Enhanced WiFi Protocol Exploitation (CVE-2025-10250) - CRITICAL
+    - MAVLink 2.0 Signature Bypass - HIGH
+    - MAVLink 2.0 Extension Exploitation - MEDIUM
+    - PX4 Safety Button Bypass - HIGH
+    - PX4 Preflight Check Bypass - HIGH
+    - Swarm Coordination Attack - HIGH
+    - Swarm Controller Hijack - HIGH
+    - Firmware Backdoor - HIGH
+    - Adversarial Object Detection - HIGH
+    - Tracking Manipulation - HIGH
+    - Autonomous Decision Poisoning - HIGH
+  - **Phase 2: Medium-Priority Software Payloads (10 payloads)**
+    - FlyTrap Attack Framework - MEDIUM
+    - ACAS-Xu System Exploitation - MEDIUM
+    - Parameter Validation Bypass (ArduPilot) - MEDIUM
+    - EKF Spoofing - MEDIUM
+    - Swarm Discovery - MEDIUM
+    - Parameter Persistence - HIGH
+    - Startup Script Injection - HIGH
+    - Sensor Fusion Poisoning - MEDIUM
+    - Kalman Filter Attack - MEDIUM
+    - RF Jamming Attacks - MEDIUM
+  - **Phase 3: Hardware-Based Payloads (7 payloads)**
+    - USB Exploitation - MEDIUM
+    - Serial Protocol Exploitation - MEDIUM
+    - BLE Exploitation - MEDIUM
+    - BLE GATT Exploitation - MEDIUM
+    - CAN Bus Injection - MEDIUM
+    - CAN Bus Replay - MEDIUM
+    - JTAG/SWD Exploitation - LOW
+  - **Phase 4: Advanced Payloads (1 payload)**
+    - Micro Drone Hijacking - MEDIUM
+- **New Directory Structure**:
+  - `exploits/advanced/` - Advanced attack frameworks
+  - `exploits/swarm/` - Swarm-specific attacks
+  - `exploits/persistence/` - Persistence mechanisms
+  - `exploits/ai/` - AI/ML-based attacks
+- **Payload Registry Updates**: All 29 new payloads registered with severity, CVSS scores, and target compatibility
+
+### Changed
+- **Total Payload Count**: Increased from 60 to 89+ payloads
+- **README.md**: Updated exploit statistics to reflect 89+ payloads
+- **Payload Registry**: Expanded to include all new payload categories
+
 ## [1.1.0] - 2026-01-22
 
 ### Added
@@ -23,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ADDITIONAL_PAYLOADS_RESEARCH.md - Additional payload research
 
 ### Features
-- 73+ automated exploit scripts across 11 attack categories
+- 89+ automated exploit scripts across 11 attack categories
 - **Hail Mary Attack**: Automated multi-vector exploitation system
 - 10+ real-world CVE implementations
 - Dual mode operation (Lite and Full)
