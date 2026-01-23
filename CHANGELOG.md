@@ -7,6 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Flight Controller Security Improvements**: Comprehensive security and code quality improvements:
+  - **Input Validation**: Added comprehensive validation for UDP destinations, serial devices, baud rates, and parameters
+    - IP address format validation with regex
+    - Port range validation (1-65535)
+    - Serial device path validation with security checks
+    - Parameter name sanitization and validation
+    - Parameter value type and range validation
+  - **MAVLink Connection Improvements**:
+    - Connection timeouts (configurable, default 5 seconds)
+    - Retry logic with exponential backoff (max 3 retries)
+    - Thread-safe connection handling with locks
+    - Configurable MAVLink 2.0 authentication (optional, disabled by default)
+    - Connection state tracking and monitoring
+    - Improved error handling with specific exceptions
+  - **Parameter Access Control**:
+    - Critical parameters list (ARMING_CHECK, FS_THR_ENABLE, FENCE_ENABLE, etc.)
+    - Read-only parameters protection (STAT_BOOTCNT, STAT_FLTTIME, etc.)
+    - Audit logging for all parameter changes
+    - Parameter value validation for safety-critical parameters
+  - **Process Management**:
+    - Graceful shutdown (SIGTERM before SIGKILL)
+    - Secure PID tracking using pgrep
+    - Improved process cleanup
+  - **Comprehensive Logging**:
+    - Structured security event logging
+    - Parameter change audit logs
+    - Connection event logging
+    - User context in all security events
+  - **Rate Limiting**:
+    - Configurable rate limiting per endpoint
+    - Token bucket implementation
+    - Applied to critical endpoints (start_telemetry, set_parameter, add_udp_destination)
+  - **Error Handling**:
+    - Replaced broad `except Exception` with specific exceptions
+    - Better error messages with context
+    - Connection error recovery
+  - **Thread Safety**:
+    - Thread locks for global MAVLink connection
+    - Safe concurrent access handling
+  - **Health Checks**:
+    - `/health` endpoint for overall system health
+    - `/health/mavlink` for MAVLink connection status
+    - `/health/processes` for process monitoring
+  - **Configuration Extensions**:
+    - MAVLink authentication settings (mavlink_auth, mavlink_key)
+    - Rate limiting settings (enable_rate_limiting, max_connection_attempts_per_hour, etc.)
+    - Parameter access control settings (parameter_access_control, critical_parameters)
+    - Connection timeout settings (connection_timeout_seconds)
+    - Audit logging settings (enable_audit_logging)
+  - **Database Models**:
+    - AuditLog model for security event tracking
+    - ProcessTracker model for process monitoring
+  - **Container Security**:
+    - Replaced privileged mode with specific capabilities (SYS_ADMIN, NET_ADMIN)
+    - Added security_opt: no-new-privileges
+    - Note: May require testing as serial communication might be affected
+  - **Serial Communication Security**:
+    - Group-based permissions instead of world-writable
+    - Proper dialout group management
+    - Secure socket permissions
+
 ### Fixed
 - **Hardware Scripts Fixed**: Added validation and improved error handling to all hardware scripts:
   - `usb_exploitation.py` - Vendor/Product ID validation, specific exception handling

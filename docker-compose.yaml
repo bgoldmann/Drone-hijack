@@ -2,7 +2,14 @@ services:
   flight-controller:
     image: n1ckaleks/damn-vulnerable-drone-flight-controller:latest
     container_name: flight-controller
-    privileged: true
+    # NOTE: Removing privileged mode may break serial communication in some environments
+    # If serial communication fails, revert to privileged: true
+    # privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
     build:
       context: .
       dockerfile: ./flight-controller/Dockerfile

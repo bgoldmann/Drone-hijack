@@ -71,7 +71,9 @@ def validate_config(config):
     
     # Validate numeric fields
     numeric_fields = ['log_retention_days', 'telemetry_rate', 'geofence_radius', 
-                      'max_connection_attempts', 'session_timeout']
+                      'max_connection_attempts', 'session_timeout', 'connection_timeout_seconds',
+                      'max_connection_attempts_per_hour', 'max_parameter_changes_per_minute',
+                      'default_rate_limit']
     for field in numeric_fields:
         if field in config:
             try:
@@ -79,9 +81,44 @@ def validate_config(config):
                 if value < 0:
                     errors.append(f"{field} must be non-negative")
                     valid = False
+                # Specific range validations
+                if field == 'connection_timeout_seconds' and (value < 1 or value > 60):
+                    errors.append(f"{field} must be between 1 and 60 seconds")
+                    valid = False
+                if field in ['max_connection_attempts_per_hour', 'max_parameter_changes_per_minute'] and value > 1000:
+                    errors.append(f"{field} exceeds maximum value (1000)")
+                    valid = False
             except (ValueError, TypeError):
                 errors.append(f"{field} must be a number")
                 valid = False
+    
+    # Validate boolean fields
+    boolean_fields = ['mavlink_auth', 'enable_logging', 'enable_geofence', 
+                     'enable_rate_limiting', 'parameter_access_control', 'enable_audit_logging']
+    for field in boolean_fields:
+        if field in config:
+            if not isinstance(config[field], bool):
+                errors.append(f"{field} must be a boolean")
+                valid = False
+    
+    # Validate mavlink_key if mavlink_auth is enabled
+    if config.get('mavlink_auth', False):
+        mavlink_key = config.get('mavlink_key', '')
+        if not mavlink_key or len(mavlink_key) < 8:
+            errors.append("mavlink_key must be at least 8 characters when mavlink_auth is enabled")
+            valid = False
+    
+    # Validate critical_parameters is a list
+    if 'critical_parameters' in config:
+        if not isinstance(config['critical_parameters'], list):
+            errors.append("critical_parameters must be a list")
+            valid = False
+        else:
+            # Validate each parameter name
+            for param in config['critical_parameters']:
+                if not isinstance(param, str) or len(param) > 16:
+                    errors.append(f"Invalid parameter name in critical_parameters: {param}")
+                    valid = False
     
     return {'valid': valid, 'errors': errors}
 

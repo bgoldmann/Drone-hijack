@@ -5,6 +5,7 @@
     "security_level": "low",
     "wifi_encryption": "wep",
     "mavlink_auth": false,
+    "mavlink_key": "",
     "attack_difficulty": "beginner",
     "drone_model": "quadcopter",
     "enable_logging": true,
@@ -14,5 +15,19 @@
     "geofence_radius": 100,
     "enable_rate_limiting": false,
     "max_connection_attempts": 10,
-    "session_timeout": 3600
+    "max_connection_attempts_per_hour": 5,
+    "max_parameter_changes_per_minute": 10,
+    "default_rate_limit": 100,
+    "session_timeout": 3600,
+    "connection_timeout_seconds": 5,
+    "parameter_access_control": true,
+    "enable_audit_logging": true,
+    "critical_parameters": [
+        "ARMING_CHECK",
+        "FS_THR_ENABLE",
+        "FENCE_ENABLE",
+        "BRD_SAFETYOPTION",
+        "FS_EKF_ACTION",
+        "FS_GCS_ENABLE"
+    ]
 }

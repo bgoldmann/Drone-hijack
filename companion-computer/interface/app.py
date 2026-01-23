@@ -39,6 +39,7 @@ from routes.camera import camera_bp
 from routes.logs import logs_bp
 from routes.telemetry import telemetry_bp
 from routes.wifi import wifi_bp
+from routes.health import health_bp
 
 # ---------------------------------------------------------------------------
 # Globals / singletons
@@ -166,6 +167,7 @@ def create_app() -> Flask:
     app.register_blueprint(logs_bp, url_prefix="/logs")
     app.register_blueprint(wifi_bp, url_prefix="/wifi")
     app.register_blueprint(camera_bp, url_prefix="/camera")
+    app.register_blueprint(health_bp, url_prefix="/health")
 
     # -------------------- Pages --------------------
 

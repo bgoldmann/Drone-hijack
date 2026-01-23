@@ -3,10 +3,43 @@ from flask_socketio import SocketIO
 import serial
 import time
 import math
+import threading
+import logging
+from pathlib import Path
+import json
 from typing import Optional, Dict, Any
 
 mav_connection = None
 socketio: Optional[SocketIO] = None
+mav_connection_lock = threading.Lock()
+connection_state = {'status': 'disconnected', 'last_heartbeat': None}
+
+# Parameter access control
+CRITICAL_PARAMS = [
+    'ARMING_CHECK', 'FS_THR_ENABLE', 'FENCE_ENABLE', 
+    'BRD_SAFETYOPTION', 'FS_EKF_ACTION', 'FS_GCS_ENABLE',
+    'FS_DR_ENABLE', 'FS_OPTIONS', 'BRD_SAFETY_DEFLT'
+]
+
+READ_ONLY_PARAMS = ['STAT_BOOTCNT', 'STAT_FLTTIME', 'STAT_RESET', 'STAT_RUNTIME']
+
+CONFIG_FILE = Path("/interface/config.json")
+
+def _load_config():
+    """Load configuration from config.json"""
+    if CONFIG_FILE.exists():
+        try:
+            with CONFIG_FILE.open() as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            logging.error(f"Error loading config: {e}")
+            return {}
+    return {}
+
+def _get_config_value(key, default=None):
+    """Get configuration value"""
+    config = _load_config()
+    return config.get(key, default)
 
 # ---------------- Connection helpers ----------------
 
@@ -19,10 +52,20 @@ def create_mavlink_connection():
     return mav_connection
 
 def close_mavlink_connection():
-    global mav_connection
-    if mav_connection:
-        mav_connection.close()
-        mav_connection = None
+    """Close MAVLink connection safely"""
+    global mav_connection, connection_state
+    
+    with mav_connection_lock:
+        if mav_connection:
+            try:
+                mav_connection.close()
+                logging.info("MAVLink connection closed")
+            except Exception as e:
+                logging.error(f"Error closing MAVLink connection: {e}")
+            finally:
+                mav_connection = None
+                connection_state['status'] = 'disconnected'
+                connection_state['last_heartbeat'] = None
 
 # ---------------- Internal utils ----------------
 
@@ -165,7 +208,13 @@ def get_vehicle_type_and_firmware(include_gauges: bool = False, gauge_timeout: f
     vehicle_type = "Unknown"
     firmware_version = "Unknown"
 
-    conn = mav_connection or create_mavlink_connection()
+    try:
+        conn = mav_connection or create_mavlink_connection()
+    except (ConnectionError, TimeoutError) as e:
+        logging.error(f"Failed to establish connection: {e}")
+        if include_gauges:
+            return vehicle_type, firmware_version, _empty_gauges()
+        return vehicle_type, firmware_version
 
     # Try AUTOPILOT_VERSION (non-fatal if missing)
     try:
@@ -176,18 +225,25 @@ def get_vehicle_type_and_firmware(include_gauges: bool = False, gauge_timeout: f
         )
         start = time.time()
         while time.time() - start < 5:
-            msg = conn.recv_match(type="AUTOPILOT_VERSION", blocking=True, timeout=1)
-            if msg:
-                try:
-                    fw = int(getattr(msg, "flight_sw_version", 0))
-                    major = (fw >> 8) & 0xFF
-                    minor = (fw >> 16) & 0xFF
-                    patch = (fw >> 24) & 0xFF
-                    firmware_version = f"{major}.{minor}.{patch}"
-                except Exception:
-                    firmware_version = "Unknown"
-                break
-    except Exception:
+            try:
+                msg = conn.recv_match(type="AUTOPILOT_VERSION", blocking=True, timeout=1)
+                if msg:
+                    try:
+                        fw = int(getattr(msg, "flight_sw_version", 0))
+                        major = (fw >> 8) & 0xFF
+                        minor = (fw >> 16) & 0xFF
+                        patch = (fw >> 24) & 0xFF
+                        firmware_version = f"{major}.{minor}.{patch}"
+                    except (ValueError, TypeError, AttributeError):
+                        firmware_version = "Unknown"
+                    break
+            except (TimeoutError, serial.serialutil.PortNotOpenError):
+                continue
+    except (ConnectionError, TimeoutError, OSError) as e:
+        logging.debug(f"Could not get autopilot version: {e}")
+        pass
+    except Exception as e:
+        logging.debug(f"Unexpected error getting autopilot version: {e}")
         pass
 
     # Identify vehicle type from HEARTBEAT, prefer QUADROTOR, ignore GCS
@@ -219,10 +275,16 @@ def get_vehicle_type_and_firmware(include_gauges: bool = False, gauge_timeout: f
     gauges = _empty_gauges()
     end = time.time() + max(0.5, float(gauge_timeout))
     while time.time() < end:
-        msg = conn.recv_match(blocking=True, timeout=0.25)
-        if not msg:
+        try:
+            msg = conn.recv_match(blocking=True, timeout=0.25)
+            if not msg:
+                continue
+            _fold_frame_into_gauges(gauges, msg)
+        except (TimeoutError, serial.serialutil.PortNotOpenError):
             continue
-        _fold_frame_into_gauges(gauges, msg)
+        except (ConnectionError, OSError) as e:
+            logging.debug(f"Connection error reading gauges: {e}")
+            break
     gauges = _sanitize_gauges(gauges)
 
     return vehicle_type, firmware_version, gauges
@@ -256,7 +318,11 @@ def listen_to_mavlink():
     packets_received = 0
 
     print("Listening to MAVLink messages")
-    conn = create_mavlink_connection()
+    try:
+        conn = create_mavlink_connection()
+    except (ConnectionError, TimeoutError) as e:
+        logging.error(f"Failed to establish MAVLink connection: {e}")
+        return
 
     vehicle_type, firmware_version, gauges = get_vehicle_type_and_firmware(
         include_gauges=True, gauge_timeout=2.0
@@ -318,7 +384,11 @@ def listen_to_mavlink():
             # Fold into gauges
             try:
                 _fold_frame_into_gauges(gauges, msg)
-            except Exception:
+            except (ValueError, TypeError, AttributeError) as e:
+                logging.debug(f"Error processing message: {e}")
+                pass
+            except Exception as e:
+                logging.warning(f"Unexpected error processing message: {e}")
                 pass
 
         # Emit at ~10 Hz regardless of new frames (keeps UI moving)
