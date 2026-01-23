@@ -7,6 +7,110 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Hardware Scripts Fixed**: Added validation and improved error handling to all hardware scripts:
+  - `usb_exploitation.py` - Vendor/Product ID validation, specific exception handling
+  - `ble_exploitation.py` - MAC address validation, specific exception handling
+  - `ble_gatt_exploit.py` - MAC address and UUID validation, specific exception handling
+  - `can_bus_injection.py` - Interface and message ID validation, specific exception handling
+  - `can_bus_replay.py` - Interface, capture file, and message ID validation, specific exception handling
+  - `serial_protocol_exploit.py` - Port and baudrate validation, specific exception handling
+  - `jtag_swd_exploitation.py` - Interface, target, and action validation, specific exception handling
+  - `holy_stone_ble_rce_cve_2024_52876.py` - MAC address validation, specific exception handling
+- **Network Scripts Fixed**: Added validation to network attack scripts:
+  - `arp_spoofing.py` - IP address and interface validation
+  - `dns_spoofing.py` - Domain, IP address, and interface validation
+- **Chain Executor Fixed**: Added validation and improved error handling:
+  - `chain_executor.py` - Chain ID validation, parameter validation, timeout validation, file path validation
+- **Additional Scripts Fixed**: Continued fixing remaining exploit scripts with helper usage and validation:
+  - **Advanced Scripts**: `hail_mary_attack.py` - Helper usage
+  - **Swarm Scripts**: `swarm_discovery.py` - Helper usage
+  - **Orchestrator**: `payload_orchestrator.py` - Helper usage
+  - **Recon Scripts**: `drone_discovery.py` - Helper usage
+  - **Mission Race Condition**: Fixed connection handling in multi-threaded scenario
+  - **DoS Scripts**: `ros_topic_flooding.py`, `wifi_deauth.py` - Added validation for ports, MAC addresses, counts
+  - **Exfiltration Scripts**: `ftp_eavesdropping.py`, `wifi_client_data_leak.py` - Added duration and file validation
+  - **Recon Scripts**: `wifi_crack.py`, `gcs_discovery.py` - Added validation for channels, SSIDs, MAC addresses, network formats
+  - **Infrastructure Scripts**: `multi_vector_attack.py`, `data_interception.py`, `physical_payload_delivery.py`, `wireless_network_exploit.py` - Added coordinate, duration, and file validation
+  - **Advanced Scripts**: `dji_enhanced_wifi_exploit.py`, `rf_jamming.py` - Added validation for channels, frequencies, durations
+  - **Firmware Scripts**: `firmware_analysis.py` - Added file path validation
+  - **MITM Scripts**: `mavlink_mitm.py` - Added connection string validation
+- **GPS Spoofing Bug**: Fixed gradual mode calculation in `gps_spoofing.py` - now correctly interpolates from current position to target instead of starting from origin
+- **Connection Handling**: Improved `mavlink_helper.connect_to_drone()` with specific exception handling (ConnectionError, TimeoutError)
+- **Additional Scripts Fixed**: Continued fixing remaining exploit scripts with helper usage and validation:
+  - **Advanced Scripts**: `hail_mary_attack.py` - Helper usage
+  - **Swarm Scripts**: `swarm_discovery.py` - Helper usage
+  - **Orchestrator**: `payload_orchestrator.py` - Helper usage
+  - **Recon Scripts**: `drone_discovery.py` - Helper usage
+  - **Mission Race Condition**: Fixed connection handling in multi-threaded scenario
+  - **DoS Scripts**: `ros_topic_flooding.py`, `wifi_deauth.py` - Added validation for ports, MAC addresses, counts
+  - **Exfiltration Scripts**: `ftp_eavesdropping.py`, `wifi_client_data_leak.py` - Added duration and file validation
+  - **Recon Scripts**: `wifi_crack.py`, `gcs_discovery.py` - Added validation for channels, SSIDs, MAC addresses, network formats
+  - **Infrastructure Scripts**: `multi_vector_attack.py`, `data_interception.py`, `physical_payload_delivery.py`, `wireless_network_exploit.py` - Added coordinate, duration, and file validation
+  - **Advanced Scripts**: `dji_enhanced_wifi_exploit.py`, `rf_jamming.py` - Added validation for channels, frequencies, durations
+  - **Firmware Scripts**: `firmware_analysis.py` - Added file path validation
+  - **MITM Scripts**: `mavlink_mitm.py` - Added connection string validation
+- **Input Validation**: Added comprehensive input validation across 40+ scripts:
+  - GPS coordinates validated for valid ranges (-90 to 90 for lat, -180 to 180 for lon)
+  - Altitude validated for reasonable range (-500 to 50000 meters)
+  - Payload sizes validated with safety limits (max 10000 bytes)
+  - Flood rates validated with limits (max 10000 msg/s)
+  - Duration values validated (non-negative, warnings for > 1 hour)
+  - File paths validated for write permissions and existence
+  - Log IDs validated for non-negative values
+  - System IDs validated (1-255 range)
+  - Port numbers validated (1-65535 range)
+  - Thread counts validated with limits (max 20)
+  - Waypoint counts validated (max 1000)
+  - Battery values validated (voltage 0-50V, current -100 to 100A, remaining 0-100%)
+  - Attitude angles validated (radians and degrees)
+  - Gimbal angles validated with proper ranges
+  - Satellite counts validated (0-32)
+  - VFR HUD parameters validated (airspeed, groundspeed, heading, throttle, altitude, climb rate)
+  - URL formats validated (RTSP, HTTP, HTTPS)
+  - Network parameters validated (IP addresses, hostnames)
+  - MAC addresses validated with regex pattern matching
+  - WiFi channels validated (1-14 for 2.4GHz, 1-165 for 5GHz)
+  - SSIDs validated (max 32 characters)
+  - Network interfaces validated (max 20 characters)
+  - ROS topics validated (must start with /)
+  - Connection strings validated (must start with udp: or tcp:)
+  - Network CIDR notation validated
+  - Action/mode parameters validated against allowed values
+  - USB Vendor/Product IDs validated (0x0000 to 0xFFFF)
+  - CAN message IDs validated (0x0000 to 0x1FFFFFFF)
+  - Serial baudrates validated against standard values
+  - JTAG/SWD interfaces validated (jtag, swd)
+  - JTAG/SWD actions validated (dump, flash, debug)
+  - BLE UUIDs validated with regex pattern
+  - IP addresses validated with regex pattern
+  - Domain names validated (max 255 characters)
+  - Chain IDs validated (max 100 characters)
+  - Parameter keys/values validated (max 100/1000 characters)
+- **Error Handling**: Improved error handling across 50+ scripts:
+  - Replaced broad `except Exception` with specific exceptions (ConnectionError, TimeoutError, ValueError, OSError, PermissionError, subprocess.TimeoutExpired, yaml.YAMLError)
+  - Better error messages with actionable information
+  - Consistent error message format: `[-] Error type: details`
+  - Hardware-specific error handling (USB, BLE, CAN, Serial, JTAG/SWD access errors)
+  - Permission error messages with helpful hints (e.g., "May require root/sudo")
+- **Code Standardization**: Refactored key scripts to use `mavlink_helper.connect_to_drone()`:
+  - `gps_spoofing.py`
+  - `communication_flooding.py`
+  - `buffer_overflow_cve_2024_40427.py`
+  - `mavlink_inject.py`
+  - `flight_log_extraction.py`
+  - `packet_sniffing.py`
+- **Command Validation**: Added command validation in `mavlink_inject.py` with uppercase normalization
+- **Parameter Parsing**: Improved parameter parsing with proper error handling in `mavlink_inject.py`
+
+### Changed
+- **mavlink_helper.py**: Enhanced `connect_to_drone()` function with:
+  - Specific exception types (ConnectionError, OSError, TimeoutError)
+  - Better error messages
+  - Consistent timeout handling (default 5 seconds)
+- **Error Messages**: Standardized error message format across fixed scripts
+- **Code Quality**: Reduced code duplication by using helper functions
+
 ### Added
 - **29 New Payloads** - Comprehensive expansion of exploit library:
   - **Phase 1: High-Priority Software Payloads (11 payloads)**
