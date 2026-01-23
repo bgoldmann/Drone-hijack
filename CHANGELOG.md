@@ -148,6 +148,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Payload Orchestrator** (`exploits/payload_orchestrator.py`)
+  - Comprehensive payload execution system that executes all 73+ payloads ordered by severity
+  - **4-Phase Execution Flow**:
+    1. **Target Discovery**: Auto-discovers and fingerprints target drones
+    2. **Payload Filtering**: Filters by severity, category, and target compatibility
+    3. **Payload Execution**: Executes payloads sequentially by severity (CRITICAL → HIGH → MEDIUM → LOW)
+    4. **Report Generation**: Generates comprehensive JSON reports with execution results
+  - **Features**:
+    - Executes all 73+ payloads from all 11 attack categories
+    - Severity-based execution order (CRITICAL → HIGH → MEDIUM → LOW)
+    - CVSS score-based ordering within severity levels
+    - Target compatibility checking (skips incompatible payloads)
+    - Flexible filtering by severity and category
+    - Error handling and retry logic
+    - Timeout management per payload
+    - Dry run mode for preview
+    - Comprehensive JSON reporting
+    - Progress tracking and real-time status
+  - **Payload Registry** (`exploits/payload_registry.py`):
+    - Complete registry of all 73+ payloads with severity, CVSS, category, and target compatibility
+    - Organized by severity level for easy access
+    - Helper functions for payload lookup and filtering
+  - **Documentation**: `PAYLOAD_ORCHESTRATOR.md` with complete usage guide and examples
+  - **Target Models**: All supported drone models (PX4, ArduPilot, DJI, Holy Stone, ExpressLRS, Parrot, Generic)
+  - **Usage Examples**:
+    ```bash
+    # Execute all payloads
+    python3 exploits/payload_orchestrator.py udp:127.0.0.1:14550
+    
+    # Execute only HIGH severity
+    python3 exploits/payload_orchestrator.py udp:127.0.0.1:14550 --severity HIGH
+    
+    # Execute only injection category
+    python3 exploits/payload_orchestrator.py udp:127.0.0.1:14550 --category injection
+    
+    # Dry run preview
+    python3 exploits/payload_orchestrator.py udp:127.0.0.1:14550 --dry-run
+    ```
+
 - **Hail Mary Attack Payload** (`exploits/injection/hail_mary_attack.py`)
   - Automated multi-vector drone exploitation system inspired by Armitage's "Hail Mary" attack
   - **5-Phase Attack Flow**:

@@ -103,6 +103,36 @@
 - **Attack Scenarios**: 40+
 - **Documented Vulnerabilities**: 46
 
+### 🎯 Payload Orchestrator
+
+**NEW**: Comprehensive payload orchestrator that executes all 73+ payloads ordered by severity (CRITICAL → HIGH → MEDIUM → LOW).
+
+```bash
+# Execute all payloads against target
+python3 exploits/payload_orchestrator.py udp:127.0.0.1:14550
+
+# Execute only HIGH severity payloads
+python3 exploits/payload_orchestrator.py udp:127.0.0.1:14550 --severity HIGH
+
+# Execute only injection category
+python3 exploits/payload_orchestrator.py udp:127.0.0.1:14550 --category injection
+
+# Dry run to preview execution
+python3 exploits/payload_orchestrator.py udp:127.0.0.1:14550 --dry-run
+
+# Save comprehensive report
+python3 exploits/payload_orchestrator.py udp:127.0.0.1:14550 --output report.json
+```
+
+**Features**:
+- Executes all 73+ payloads in severity order
+- Auto-discovers target and filters incompatible payloads
+- Comprehensive JSON reporting
+- Flexible filtering by severity and category
+- Error handling and retry logic
+
+See [PAYLOAD_ORCHESTRATOR.md](exploits/PAYLOAD_ORCHESTRATOR.md) for complete documentation.
+
 ### 🗂️ Exploit Categories
 
 #### 1. **Injection Attacks** (20 scripts)
